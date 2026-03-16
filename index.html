@@ -45,12 +45,12 @@
 <body class="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
 
     <!-- HEADER -->
-    <header class="bg-blue-900 text-white p-6 shadow-md z-10">
-        <div class="max-w-6xl mx-auto flex items-center gap-4">
-            <i data-lucide="activity" class="w-8 h-8 text-blue-300"></i>
+    <header class="bg-blue-900 text-white p-4 sm:p-6 shadow-md z-10">
+        <div class="max-w-6xl mx-auto flex items-center gap-3 md:gap-4">
+            <i data-lucide="activity" class="w-6 h-6 sm:w-8 sm:h-8 text-blue-300 flex-shrink-0"></i>
             <div>
-                <h1 class="text-2xl font-bold tracking-tight">O Milagre da Terapia DICE</h1>
-                <p class="text-blue-200 text-sm font-medium mt-1">Simulador Interativo de Ensaios Clínicos e Medicina Baseada em Evidências</p>
+                <h1 class="text-xl sm:text-2xl font-bold tracking-tight">O Milagre da Terapia DICE</h1>
+                <p class="text-blue-200 text-xs sm:text-sm font-medium mt-0.5 sm:mt-1">Simulador Interativo de Ensaios Clínicos e Medicina Baseada em Evidências</p>
             </div>
         </div>
     </header>
@@ -63,17 +63,17 @@
     </nav>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-grow max-w-6xl mx-auto w-full p-4 sm:p-6 lg:p-8">
-        <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200" id="main-content">
+    <main class="flex-grow max-w-6xl mx-auto w-full p-3 sm:p-6 lg:p-8">
+        <div class="bg-white p-5 sm:p-8 md:p-10 rounded-2xl shadow-sm border border-slate-200" id="main-content">
             <!-- Conteúdo injetado via JS -->
         </div>
     </main>
 
     <!-- FOOTER -->
-    <footer class="bg-slate-900 text-slate-400 py-10 px-6 mt-auto text-sm text-center">
+    <footer class="bg-slate-900 text-slate-400 py-8 px-4 sm:px-6 mt-auto text-xs sm:text-sm text-center">
         <div class="max-w-4xl mx-auto space-y-6">
-            <p class="italic bg-slate-800/50 p-4 rounded-lg inline-block text-slate-300">
-                Counsell CE, Clarke MJ, Slattery J, Sandercock PA. The miracle of DICE therapy for acute stroke: fact or fictional product of subgroup analysis? BMJ. 1994 Dec 24, 31;309(6970):1677, 81. doi: 10.1136/bmj.309.6970.1677. PMID: 7819982; PMCID: PMC2542663. URL: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/" target="_blank" rel="noreferrer" class="text-blue-400 hover:text-blue-300 hover:underline transition-colors">https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/</a>
+            <p class="italic bg-slate-800/50 p-4 rounded-lg inline-block text-slate-300 break-words w-full">
+                Counsell CE, Clarke MJ, Slattery J, Sandercock PA. The miracle of DICE therapy for acute stroke: fact or fictional product of subgroup analysis? BMJ. 1994 Dec 24, 31;309(6970):1677, 81. doi: 10.1136/bmj.309.6970.1677. PMID: 7819982; PMCID: PMC2542663. URL: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/" target="_blank" rel="noreferrer" class="text-blue-400 hover:text-blue-300 hover:underline transition-colors break-all">https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/</a>
             </p>
             <div class="border-t border-slate-800 pt-6 flex flex-col items-center justify-center gap-1">
                 <p class="font-medium text-slate-300">Materiais complementares da disciplina de Pesquisa em Ciências da Saúde.</p>
@@ -199,32 +199,32 @@
             navContainer.innerHTML = tabs.map(tab => `
                 <button
                     onclick="setTab(${tab.id})"
-                    class="flex-1 px-4 py-4 min-w-[140px] text-center font-medium transition-colors border-b-4 ${
+                    class="flex-1 px-3 sm:px-4 py-3 sm:py-4 min-w-[120px] sm:min-w-[140px] text-center font-medium transition-colors border-b-4 ${
                         state.activeTab === tab.id
                             ? 'border-blue-600 text-blue-700 bg-blue-50/50'
                             : 'border-transparent text-slate-500 hover:text-blue-600 hover:bg-slate-50'
                     }"
                 >
-                    <span class="block text-xs uppercase tracking-wider mb-1 opacity-70">Passo ${tab.id}</span>
-                    ${tab.title}
+                    <span class="block text-[10px] sm:text-xs uppercase tracking-wider mb-0.5 sm:mb-1 opacity-70">Passo ${tab.id}</span>
+                    <span class="text-sm sm:text-base">${tab.title}</span>
                 </button>
             `).join('');
         }
 
         function renderStepNavigation(hasPrev, hasNext) {
             return `
-                <div class="mt-12 pt-6 border-t border-slate-200 flex items-center justify-between w-full">
+                <div class="mt-8 md:mt-12 pt-6 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-between w-full gap-4">
                     ${hasPrev ? `
-                        <button onclick="goToPrev()" class="flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                        <button onclick="goToPrev()" class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 md:py-3.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100 transition-colors">
                             <i data-lucide="arrow-left" class="w-5 h-5"></i> Passo Anterior
                         </button>
-                    ` : '<div></div>'}
+                    ` : '<div class="hidden sm:block"></div>'}
                     
                     ${hasNext ? `
-                        <button onclick="goToNext()" class="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                        <button onclick="goToNext()" class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 md:py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
                             Próximo Passo <i data-lucide="arrow-right" class="w-5 h-5"></i>
                         </button>
-                    ` : '<div></div>'}
+                    ` : '<div class="hidden sm:block"></div>'}
                 </div>
             `;
         }
@@ -250,44 +250,44 @@
         function renderPage1(container) {
             container.innerHTML = `
                 <div class="animate-fade-in">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-8 flex items-center gap-4">
-                        <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="book-open" class="text-blue-600 w-8 h-8"></i></div>
+                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-800 mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                        <div class="p-2 sm:p-3 bg-blue-100 rounded-xl"><i data-lucide="book-open" class="text-blue-600 w-6 h-6 sm:w-8 sm:h-8"></i></div>
                         O Cenário: A Revolucionária "Terapia DICE"
                     </h2>
                     
-                    <div class="grid lg:grid-cols-2 gap-10 items-center">
-                        <div class="space-y-6 text-lg text-slate-700 leading-relaxed">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 items-center">
+                        <div class="space-y-4 sm:space-y-6 text-base sm:text-lg text-slate-700 leading-relaxed">
                             <p>Em 1994, investigadores publicaram no prestigiado periódico BMJ um artigo a simular ensaios clínicos com uma intervenção inusitada, a <strong>Terapia DICE</strong> (terapia do dado), para tratar o Acidente Vascular Cerebral agudo.</p>
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                            <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-inner">
                                 <p class="font-semibold mb-4">A premissa era simples, rolar um dado para determinar o desfecho do paciente:</p>
-                                <ul class="space-y-3">
-                                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                        <div class="flex gap-1 text-blue-600">
+                                <ul class="space-y-3 text-sm sm:text-base">
+                                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex-wrap">
+                                        <div class="flex gap-1 text-blue-600 shrink-0">
                                             <i data-lucide="dice-1" class="w-5 h-5"></i>
                                             <i data-lucide="dice-3" class="w-5 h-5"></i>
                                             <i data-lucide="dice-5" class="w-5 h-5"></i>
                                         </div>
                                         <span>Tirar <strong>1, 2, 3, 4 ou 5</strong> significa <span class="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded">Sobrevivência</span>.</span>
                                     </li>
-                                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                        <div class="flex gap-1 text-red-600"><i data-lucide="dice-6" class="w-5 h-5"></i></div>
+                                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex-wrap">
+                                        <div class="flex gap-1 text-red-600 shrink-0"><i data-lucide="dice-6" class="w-5 h-5"></i></div>
                                         <span>Tirar <strong>6</strong> significa <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">Óbito</span>.</span>
                                     </li>
                                 </ul>
                             </div>
-                            <p class="bg-yellow-50 p-4 rounded-xl border-l-4 border-yellow-400 text-yellow-900 text-base">
+                            <p class="bg-yellow-50 p-4 rounded-xl border-l-4 border-yellow-400 text-yellow-900 text-sm sm:text-base">
                                 Estatisticamente, a taxa de mortalidade base é de exatos <strong>16,6%</strong> (1 em 6), tanto para quem recebe a "Terapia" quanto para o grupo de controlo. Portanto, a Terapia DICE é, por definição, <strong>100% ineficaz</strong>.
                             </p>
                         </div>
                         
-                        <div class="flex flex-col items-center justify-center bg-slate-50 p-12 rounded-3xl border-2 border-dashed border-slate-300 h-full min-h-[400px]">
+                        <div class="flex flex-col items-center justify-center bg-slate-50 p-8 md:p-12 rounded-3xl border-2 border-dashed border-slate-300 h-full min-h-[300px] md:min-h-[400px]">
                             <div class="relative" id="p1-dice-container">
                                 <!-- Dice rendered here -->
                             </div>
-                            <div class="mt-8 h-12 flex items-center justify-center" id="p1-result-container">
+                            <div class="mt-6 md:mt-8 h-12 flex items-center justify-center w-full" id="p1-result-container">
                                 <!-- Result rendered here -->
                             </div>
-                            <p class="mt-6 text-sm text-slate-500 text-center max-w-xs">
+                            <p class="mt-4 md:mt-6 text-xs sm:text-sm text-slate-500 text-center max-w-xs">
                                 Nesta simulação, o puro acaso é o único fator que decide a vida ou a morte do paciente.
                             </p>
                         </div>
@@ -313,20 +313,20 @@
             if (!diceContainer || !resultContainer) return;
 
             const iconClass = state.p1DiceFace === 6 
-                ? "text-red-600 scale-110 drop-shadow-md w-20 h-20 transition-all duration-300" 
-                : "text-blue-600 w-20 h-20 transition-all duration-300";
+                ? "text-red-600 scale-110 drop-shadow-md w-16 h-16 md:w-20 md:h-20 transition-all duration-300" 
+                : "text-blue-600 w-16 h-16 md:w-20 md:h-20 transition-all duration-300";
             
             let diceHtml = `<i data-lucide="dice-${state.p1DiceFace}" class="${iconClass}"></i>`;
             if (state.p1DiceFace === 6) {
                 diceHtml += `<div class="absolute -inset-4 bg-red-500/20 rounded-full animate-ping-slow z-[-1]"></div>`;
                 resultContainer.innerHTML = `
-                    <span class="text-red-700 bg-red-100 border border-red-200 px-6 py-2 rounded-full text-xl font-bold flex items-center gap-2 shadow-sm animate-fade-in">
-                        <i data-lucide="alert-triangle" class="w-6 h-6"></i> Resultado: Óbito
+                    <span class="text-red-700 bg-red-100 border border-red-200 px-4 sm:px-6 py-2 rounded-full text-base sm:text-lg md:text-xl font-bold flex items-center justify-center gap-2 shadow-sm animate-fade-in w-full max-w-xs">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 sm:w-6 sm:h-6 shrink-0"></i> Resultado: Óbito
                     </span>`;
             } else {
                 resultContainer.innerHTML = `
-                    <span class="text-green-700 bg-green-100 border border-green-200 px-6 py-2 rounded-full text-xl font-bold flex items-center gap-2 shadow-sm animate-fade-in">
-                        <i data-lucide="check-circle-2" class="w-6 h-6"></i> Resultado: Sobrevivência
+                    <span class="text-green-700 bg-green-100 border border-green-200 px-4 sm:px-6 py-2 rounded-full text-base sm:text-lg md:text-xl font-bold flex items-center justify-center gap-2 shadow-sm animate-fade-in w-full max-w-xs">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 sm:w-6 sm:h-6 shrink-0"></i> Resultado: Sobrevivência
                     </span>`;
             }
 
@@ -373,11 +373,11 @@
         function renderPage2(container) {
             container.innerHTML = `
                 <div class="animate-fade-in">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
-                        <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="users" class="text-blue-600 w-8 h-8"></i></div>
+                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-800 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                        <div class="p-2 sm:p-3 bg-blue-100 rounded-xl"><i data-lucide="users" class="text-blue-600 w-6 h-6 sm:w-8 sm:h-8"></i></div>
                         O Fator Acaso em Amostras Pequenas
                     </h2>
-                    <p class="text-slate-600 text-lg mb-8 max-w-3xl">
+                    <p class="text-slate-600 text-base sm:text-lg mb-6 sm:mb-8 max-w-3xl">
                         Escolha o tamanho da amostra (número de pacientes por grupo) e simule um Ensaio Clínico. 
                         Como a mortalidade real é igual em ambos os grupos, <strong>qualquer diferença observada será puro acaso.</strong>
                     </p>
@@ -395,28 +395,28 @@
             if (!area) return;
 
             let html = `
-                <div class="bg-slate-50 p-8 rounded-2xl mb-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-slate-200 shadow-sm">
+                <div class="bg-slate-50 p-5 sm:p-8 rounded-2xl mb-8 sm:mb-10 flex flex-col md:flex-row items-center gap-6 md:gap-8 justify-between border border-slate-200 shadow-sm">
                     <div class="flex-1 w-full">
-                        <div class="flex justify-between items-end mb-4">
-                            <label class="block text-sm font-semibold text-slate-700 uppercase tracking-wide">Tamanho da Amostra (por grupo)</label>
-                            <span id="p2-sample-size-display" class="text-blue-700 font-black text-3xl bg-blue-100 px-4 py-1 rounded-lg">${state.p2SampleSize}</span>
+                        <div class="flex flex-row justify-between items-end mb-4 gap-2">
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 uppercase tracking-wide flex-1">Tamanho da Amostra (por grupo)</label>
+                            <span id="p2-sample-size-display" class="text-blue-700 font-black text-2xl sm:text-3xl bg-blue-100 px-3 sm:px-4 py-1 rounded-lg shrink-0">${state.p2SampleSize}</span>
                         </div>
                         <input type="range" min="10" max="200" step="10" value="${state.p2SampleSize}" 
                             oninput="handleSampleSizeChange(this.value)"
                             class="w-full h-3 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
                         />
-                        <div class="flex justify-between mt-2 text-xs text-slate-400 font-medium">
+                        <div class="flex justify-between mt-2 text-[10px] sm:text-xs text-slate-400 font-medium">
                             <span>Pequena (10)</span><span>Média (100)</span><span>Grande (200)</span>
                         </div>
                     </div>
                     
-                    <div class="w-full md:w-auto flex justify-center border-t md:border-t-0 md:border-l border-slate-200 pt-6 md:pt-0 md:pl-8">
+                    <div class="w-full md:w-auto flex justify-center border-t md:border-t-0 md:border-l border-slate-200 pt-5 md:pt-0 md:pl-8">
                         <button onclick="handleRollDicePage2()" ${state.p2IsRolling ? 'disabled' : ''} 
-                            class="w-full md:w-auto px-8 py-5 rounded-2xl font-bold text-white transition-all min-w-[240px] flex justify-center items-center gap-3 text-lg ${
-                            state.p2IsRolling ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
+                            class="w-full md:w-auto px-6 sm:px-8 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-bold text-white transition-all md:min-w-[240px] flex justify-center items-center gap-3 text-base sm:text-lg ${
+                            state.p2IsRolling ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg sm:shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
                         }">
-                            <i data-lucide="${state.p2IsRolling ? 'dice-6' : 'dice-3'}" class="${state.p2IsRolling ? 'animate-spin' : ''} w-7 h-7"></i>
-                            ${state.p2IsRolling ? 'A Processar Dados...' : 'Iniciar Ensaio Clínico'}
+                            <i data-lucide="${state.p2IsRolling ? 'dice-6' : 'dice-3'}" class="${state.p2IsRolling ? 'animate-spin' : ''} w-6 h-6 sm:w-7 sm:h-7 shrink-0"></i>
+                            <span class="truncate">${state.p2IsRolling ? 'A Processar...' : 'Iniciar Ensaio Clínico'}</span>
                         </button>
                     </div>
                 </div>
@@ -428,33 +428,33 @@
                 
                 html += `
                 <div class="transition-all duration-500 ease-in-out opacity-100 translate-y-0">
-                    <div class="grid lg:grid-cols-12 gap-8">
-                        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-md">
-                            <div class="bg-slate-800 p-4 text-white font-bold text-center tracking-wide uppercase text-sm flex items-center justify-center gap-2">
-                                <i data-lucide="activity" class="w-5 h-5"></i> Resultados Observados do Estudo
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-md flex flex-col">
+                            <div class="bg-slate-800 p-3 sm:p-4 text-white font-bold text-center tracking-wide uppercase text-xs sm:text-sm flex items-center justify-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 sm:w-5 sm:h-5"></i> Resultados Observados
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-center">
+                            <div class="overflow-x-auto w-full">
+                                <table class="w-full text-center min-w-[400px]">
                                     <thead>
-                                        <tr class="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
-                                            <th class="p-4 border-b border-r font-semibold text-left pl-6">Grupo de Estudo</th>
-                                            <th class="p-4 border-b border-r text-red-600 font-bold">Óbitos<br/><span class="text-xs font-normal">(Dado = 6)</span></th>
-                                            <th class="p-4 border-b border-r text-green-600 font-bold">Sobreviventes<br/><span class="text-xs font-normal">(Dado 1 a 5)</span></th>
-                                            <th class="p-4 border-b font-semibold">Total</th>
+                                        <tr class="bg-slate-50 text-slate-500 text-xs sm:text-sm uppercase tracking-wider">
+                                            <th class="p-3 sm:p-4 border-b border-r font-semibold text-left pl-4 sm:pl-6 w-1/3">Grupo de Estudo</th>
+                                            <th class="p-3 sm:p-4 border-b border-r text-red-600 font-bold w-1/4">Óbitos<br/><span class="text-[10px] sm:text-xs font-normal">(Dado = 6)</span></th>
+                                            <th class="p-3 sm:p-4 border-b border-r text-green-600 font-bold w-1/4">Sobreviventes<br/><span class="text-[10px] sm:text-xs font-normal">(Dado 1 a 5)</span></th>
+                                            <th class="p-3 sm:p-4 border-b font-semibold w-1/6">Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr class="border-b transition-colors hover:bg-slate-50">
-                                            <td class="p-4 border-r font-bold text-left pl-6 text-slate-700">Terapia DICE</td>
-                                            <td class="p-4 border-r text-2xl font-medium">${res.trtDeaths}</td>
-                                            <td class="p-4 border-r text-2xl font-medium">${res.trtSurvivals}</td>
-                                            <td class="p-4 bg-slate-50 text-lg font-medium text-slate-500">${state.p2SampleSize}</td>
+                                            <td class="p-3 sm:p-4 border-r font-bold text-left pl-4 sm:pl-6 text-slate-700">Terapia DICE</td>
+                                            <td class="p-3 sm:p-4 border-r text-xl sm:text-2xl font-medium">${res.trtDeaths}</td>
+                                            <td class="p-3 sm:p-4 border-r text-xl sm:text-2xl font-medium">${res.trtSurvivals}</td>
+                                            <td class="p-3 sm:p-4 bg-slate-50 text-base sm:text-lg font-medium text-slate-500">${state.p2SampleSize}</td>
                                         </tr>
                                         <tr class="transition-colors hover:bg-slate-50">
-                                            <td class="p-4 border-r font-bold text-left pl-6 text-slate-700">Controlo</td>
-                                            <td class="p-4 border-r text-2xl font-medium">${res.ctrlDeaths}</td>
-                                            <td class="p-4 border-r text-2xl font-medium">${res.ctrlSurvivals}</td>
-                                            <td class="p-4 bg-slate-50 text-lg font-medium text-slate-500">${state.p2SampleSize}</td>
+                                            <td class="p-3 sm:p-4 border-r font-bold text-left pl-4 sm:pl-6 text-slate-700">Controlo</td>
+                                            <td class="p-3 sm:p-4 border-r text-xl sm:text-2xl font-medium">${res.ctrlDeaths}</td>
+                                            <td class="p-3 sm:p-4 border-r text-xl sm:text-2xl font-medium">${res.ctrlSurvivals}</td>
+                                            <td class="p-3 sm:p-4 bg-slate-50 text-base sm:text-lg font-medium text-slate-500">${state.p2SampleSize}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -462,50 +462,50 @@
                         </div>
 
                         <div class="lg:col-span-5 space-y-4">
-                            <div class="p-6 rounded-2xl border-2 transition-colors duration-500 relative overflow-hidden ${
+                            <div class="p-5 sm:p-6 rounded-2xl border-2 transition-colors duration-500 relative overflow-hidden ${
                                 stats.isSignificant ? 'bg-yellow-50/50 border-yellow-400' : 'bg-green-50/50 border-green-400'
                             }">
-                                ${stats.isSignificant ? `<div class="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wide">Anomalia Estatística</div>` : ''}
+                                ${stats.isSignificant ? `<div class="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg uppercase tracking-wide">Anomalia Estatística</div>` : ''}
                                 
-                                <h4 class="text-sm text-slate-500 font-bold uppercase mb-2 tracking-wider">Risco Relativo (RR)</h4>
-                                <div class="flex items-baseline gap-3">
-                                    <p class="text-5xl font-black text-slate-800">${stats.rr.toFixed(2)}</p>
-                                    <p class="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-md border border-slate-200">
+                                <h4 class="text-xs sm:text-sm text-slate-500 font-bold uppercase mb-2 tracking-wider">Risco Relativo (RR)</h4>
+                                <div class="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-3">
+                                    <p class="text-4xl sm:text-5xl font-black text-slate-800">${stats.rr.toFixed(2)}</p>
+                                    <p class="text-xs sm:text-sm font-medium text-slate-500 bg-white px-2 sm:px-3 py-1 rounded-md border border-slate-200 self-start sm:self-auto">
                                         IC 95%: [${stats.lowerRr.toFixed(2)}, ${stats.upperRr.toFixed(2)}]
                                     </p>
                                 </div>
                                 
                                 ${stats.isSignificant ? `
-                                <div class="mt-4 bg-yellow-100 text-yellow-800 p-3 rounded-xl text-sm font-medium flex gap-2 items-start border border-yellow-200">
-                                    <i data-lucide="alert-triangle" class="shrink-0 mt-0.5 w-5 h-5"></i>
+                                <div class="mt-4 bg-yellow-100 text-yellow-800 p-3 rounded-xl text-xs sm:text-sm font-medium flex gap-2 items-start border border-yellow-200">
+                                    <i data-lucide="alert-triangle" class="shrink-0 mt-0.5 w-4 h-4 sm:w-5 sm:h-5"></i>
                                     <p><strong>Falso Positivo!</strong> Por puro acaso, a terapia parece ter um efeito significativo. Tente rolar os dados novamente.</p>
                                 </div>
                                 ` : `
-                                <div class="mt-4 text-green-700 text-sm font-medium flex items-center gap-2">
-                                    <i data-lucide="check-circle-2" class="w-5 h-5"></i> Sem diferença estatística significativa.
+                                <div class="mt-4 text-green-700 text-xs sm:text-sm font-medium flex items-center gap-2">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 sm:w-5 sm:h-5"></i> Sem diferença estatística significativa.
                                 </div>
                                 `}
                             </div>
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-                                    <h4 class="text-xs text-slate-400 font-bold uppercase mb-2 tracking-wider">NNT (Benefício)</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                                    <h4 class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase mb-1 sm:mb-2 tracking-wider">NNT (Benefício)</h4>
                                     ${stats.nnt ? `
                                         <div>
-                                            <p class="text-3xl font-black text-green-600">${Math.ceil(stats.nnt)}</p>
-                                            ${stats.isSignificant ? `<p class="text-xs font-medium text-slate-400 mt-1">IC: [${Math.ceil(stats.nntLower || 0)}, ${Math.ceil(stats.nntUpper || 0)}]</p>` : ''}
+                                            <p class="text-2xl sm:text-3xl font-black text-green-600">${Math.ceil(stats.nnt)}</p>
+                                            ${stats.isSignificant ? `<p class="text-[10px] sm:text-xs font-medium text-slate-400 mt-1">IC: [${Math.ceil(stats.nntLower || 0)}, ${Math.ceil(stats.nntUpper || 0)}]</p>` : ''}
                                         </div>
-                                    ` : `<p class="text-xl text-slate-300 font-medium">Não aplicável</p>`}
+                                    ` : `<p class="text-lg sm:text-xl text-slate-300 font-medium">Não aplicável</p>`}
                                 </div>
                                 
-                                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-                                    <h4 class="text-xs text-slate-400 font-bold uppercase mb-2 tracking-wider">NNH (Dano)</h4>
+                                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                                    <h4 class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase mb-1 sm:mb-2 tracking-wider">NNH (Dano)</h4>
                                     ${stats.nnh ? `
                                         <div>
-                                            <p class="text-3xl font-black text-red-600">${Math.ceil(stats.nnh)}</p>
-                                            ${stats.isSignificant ? `<p class="text-xs font-medium text-slate-400 mt-1">IC: [${Math.ceil(stats.nnhLower || 0)}, ${Math.ceil(stats.nnhUpper || 0)}]</p>` : ''}
+                                            <p class="text-2xl sm:text-3xl font-black text-red-600">${Math.ceil(stats.nnh)}</p>
+                                            ${stats.isSignificant ? `<p class="text-[10px] sm:text-xs font-medium text-slate-400 mt-1">IC: [${Math.ceil(stats.nnhLower || 0)}, ${Math.ceil(stats.nnhUpper || 0)}]</p>` : ''}
                                         </div>
-                                    ` : `<p class="text-xl text-slate-300 font-medium">Não aplicável</p>`}
+                                    ` : `<p class="text-lg sm:text-xl text-slate-300 font-medium">Não aplicável</p>`}
                                 </div>
                             </div>
                         </div>
@@ -526,16 +526,16 @@
         function renderPage3(container) {
             container.innerHTML = `
                 <div class="animate-fade-in">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
-                        <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="filter" class="text-blue-600 w-8 h-8"></i></div>
+                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-800 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                        <div class="p-2 sm:p-3 bg-blue-100 rounded-xl"><i data-lucide="filter" class="text-blue-600 w-6 h-6 sm:w-8 sm:h-8"></i></div>
                         A Armadilha das Análises de Subgrupos
                     </h2>
-                    <p class="text-slate-600 text-lg mb-8 max-w-4xl">
+                    <p class="text-slate-600 text-base sm:text-lg mb-6 sm:mb-8 max-w-4xl">
                         Os autores do artigo tentaram encontrar algum benefício dividindo os dados por <strong>cor do dado</strong> e <strong>experiência do investigador</strong>. 
                         Experimente desmarcar a cor "Vermelho" (dados que "deram azar") e o "1º Ensaio" (pesquisadores "inexperientes") para ver o que acontece com o resultado final.
                     </p>
 
-                    <div class="grid lg:grid-cols-12 gap-8" id="p3-dynamic-area"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8" id="p3-dynamic-area"></div>
 
                     ${renderStepNavigation(true, true)}
                 </div>
@@ -546,17 +546,17 @@
         function buildToggleButton(label, filterKey, colorClass, subtitle) {
             const checked = state.p3Filters[filterKey];
             return `
-                <button onclick="toggleFilter('${filterKey}')" class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
+                <button onclick="toggleFilter('${filterKey}')" class="w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
                     checked ? `bg-${colorClass}-50 border-${colorClass}-500 shadow-sm` : 'bg-white border-slate-200 hover:border-slate-300'
                 }">
                     <div>
-                        <div class="font-bold ${checked ? `text-${colorClass}-800` : 'text-slate-600'}">${label}</div>
-                        ${subtitle ? `<div class="text-xs mt-1 ${checked ? `text-${colorClass}-600/80` : 'text-slate-400'}">${subtitle}</div>` : ''}
+                        <div class="font-bold text-sm sm:text-base ${checked ? `text-${colorClass}-800` : 'text-slate-600'}">${label}</div>
+                        ${subtitle ? `<div class="text-[10px] sm:text-xs mt-0.5 sm:mt-1 ${checked ? `text-${colorClass}-600/80` : 'text-slate-400'}">${subtitle}</div>` : ''}
                     </div>
-                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ml-2 ${
                         checked ? `bg-${colorClass}-500 border-${colorClass}-500 text-white` : 'border-slate-300 bg-slate-50'
                     }">
-                        ${checked ? '<i data-lucide="check-circle-2" class="w-4 h-4"></i>' : ''}
+                        ${checked ? '<i data-lucide="check-circle-2" class="w-3 h-3 sm:w-4 sm:h-4"></i>' : ''}
                     </div>
                 </button>
             `;
@@ -598,37 +598,37 @@
                 const dotPos = Math.max(0, Math.min(100, (metaAnalysis.rr / 2) * 100));
 
                 metaHtml = `
-                    <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-md h-full flex flex-col items-center justify-center relative overflow-hidden">
-                        <i data-lucide="activity" class="absolute text-slate-50 opacity-50 z-0 rotate-12 w-[200px] h-[200px]"></i>
+                    <div class="bg-white border-2 border-slate-200 rounded-2xl md:rounded-3xl p-6 sm:p-8 shadow-md h-full flex flex-col items-center justify-center relative overflow-hidden">
+                        <i data-lucide="activity" class="absolute text-slate-50 opacity-50 z-0 rotate-12 w-[120px] h-[120px] md:w-[200px] md:h-[200px]"></i>
                         <div class="text-center z-10 relative w-full">
-                            <div class="inline-block bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wide mb-8 shadow-sm">
+                            <div class="inline-block bg-slate-800 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold tracking-wide mb-6 sm:mb-8 shadow-sm">
                                 Metanálise Combinada (${filteredTrials.length} estudos)
                             </div>
-                            <div class="mb-10">
-                                <p class="text-sm uppercase font-bold text-slate-500 tracking-widest mb-2">Risco Relativo Global</p>
+                            <div class="mb-8 sm:mb-10">
+                                <p class="text-xs sm:text-sm uppercase font-bold text-slate-500 tracking-widest mb-1 sm:mb-2">Risco Relativo Global</p>
                                 <div class="flex justify-center items-center gap-4">
-                                    <p class="text-7xl font-black tracking-tighter transition-colors duration-500 ${colorRrClass}">
+                                    <p class="text-5xl md:text-7xl font-black tracking-tighter transition-colors duration-500 ${colorRrClass}">
                                         ${rrStr}
                                     </p>
                                 </div>
-                                <div class="mt-4 inline-flex items-center justify-center bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
-                                    <span class="text-slate-500 font-medium mr-2">Intervalo de Confiança 95%:</span>
+                                <div class="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center bg-slate-100 px-3 sm:px-4 py-2 rounded-lg border border-slate-200 gap-1 sm:gap-2 text-xs sm:text-sm inline-block mx-auto">
+                                    <span class="text-slate-500 font-medium">Intervalo de Confiança 95%:</span>
                                     <span class="font-bold font-mono text-slate-700">[${metaAnalysis.lowerRr.toFixed(2)}, ${metaAnalysis.upperRr.toFixed(2)}]</span>
                                 </div>
                             </div>
                             
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 mt-8 w-full max-w-lg mx-auto">
-                                <div class="relative w-full h-10 mb-2">
+                            <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100 w-full max-w-lg mx-auto">
+                                <div class="relative w-full h-8 sm:h-10 mb-2">
                                     <div class="absolute top-0 bottom-0 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
-                                    <div class="absolute top-1/2 h-3 bg-blue-500/30 border border-blue-500/50 -translate-y-1/2 rounded-full transition-all duration-700 ease-in-out z-10"
+                                    <div class="absolute top-1/2 h-2 sm:h-3 bg-blue-500/30 border border-blue-500/50 -translate-y-1/2 rounded-full transition-all duration-700 ease-in-out z-10"
                                         style="left: ${leftPos}%; right: ${rightPos}%"></div>
-                                    <div class="absolute top-1/2 w-5 h-5 bg-blue-700 border-2 border-white rounded-full -translate-y-1/2 -translate-x-1/2 transition-all duration-700 ease-in-out z-20 shadow-md"
+                                    <div class="absolute top-1/2 w-4 h-4 sm:w-5 sm:h-5 bg-blue-700 border-2 border-white rounded-full -translate-y-1/2 -translate-x-1/2 transition-all duration-700 ease-in-out z-20 shadow-md"
                                         style="left: ${dotPos}%"></div>
                                 </div>
-                                <div class="relative flex justify-between text-xs font-bold uppercase tracking-wider mt-4">
-                                    <span class="text-green-600 bg-green-50 px-2 py-1 rounded">Favorece Terapia</span>
-                                    <span class="absolute left-1/2 -translate-x-1/2 text-slate-400 bg-white px-2">RR = 1</span>
-                                    <span class="text-red-600 bg-red-50 px-2 py-1 rounded">Favorece Controlo</span>
+                                <div class="relative flex justify-between text-[8px] sm:text-[10px] md:text-xs font-bold uppercase tracking-wider mt-4">
+                                    <span class="text-green-600 bg-green-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-center">Favorece<br class="sm:hidden"/> Terapia</span>
+                                    <span class="absolute left-1/2 -translate-x-1/2 text-slate-400 bg-white px-1 sm:px-2 mt-2 sm:mt-0">RR = 1</span>
+                                    <span class="text-red-600 bg-red-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-center">Favorece<br class="sm:hidden"/> Controlo</span>
                                 </div>
                             </div>
                         </div>
@@ -636,43 +636,43 @@
                 `;
             } else {
                 metaHtml = `
-                    <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-10 h-full flex flex-col items-center justify-center text-slate-400 min-h-[400px]">
-                        <i data-lucide="filter" class="text-slate-300 w-12 h-12 mb-4"></i>
-                        <p class="text-lg font-medium text-center">Selecione pelo menos um filtro de grupo para visualizar a análise combinada.</p>
+                    <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl md:rounded-3xl p-6 md:p-10 h-full flex flex-col items-center justify-center text-slate-400 min-h-[300px] md:min-h-[400px]">
+                        <i data-lucide="filter" class="text-slate-300 w-10 h-10 md:w-12 md:h-12 mb-4"></i>
+                        <p class="text-base md:text-lg font-medium text-center">Selecione pelo menos um filtro de grupo para visualizar a análise combinada.</p>
                     </div>
                 `;
             }
 
             area.innerHTML = `
-                <div class="lg:col-span-5 space-y-8">
-                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Subgrupo: Cor do Dado</h3>
-                        <div class="space-y-3">
+                <div class="lg:col-span-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 sm:gap-6 lg:gap-8">
+                    <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 sm:mb-4 border-b border-slate-200 pb-2">Subgrupo: Cor do Dado</h3>
+                        <div class="space-y-2 sm:space-y-3 flex-grow">
                             ${buildToggleButton('Dados Vermelhos', 'colorRed', 'red', 'Resultados piores na amostra')}
                             ${buildToggleButton('Dados Verdes', 'colorGreen', 'green', '')}
                             ${buildToggleButton('Dados Brancos', 'colorWhite', 'slate', '')}
                         </div>
                     </div>
                     
-                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Subgrupo: Experiência</h3>
-                        <div class="space-y-3">
+                    <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 sm:mb-4 border-b border-slate-200 pb-2">Subgrupo: Experiência</h3>
+                        <div class="space-y-2 sm:space-y-3 flex-grow">
                             ${buildToggleButton('1º Ensaio', 'firstTrial', 'blue', 'Curva de aprendizagem inicial')}
                             ${buildToggleButton('2º Ensaio', 'secondTrial', 'blue', 'Investigadores experientes')}
                         </div>
-                    </div>
-                    
-                    <div class="transition-all duration-500 overflow-hidden ${isCherryPicking ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}">
-                        <div class="bg-red-100 text-red-800 p-5 rounded-2xl border-2 border-red-300 flex gap-3 items-start shadow-sm">
-                            <i data-lucide="alert-triangle" class="shrink-0 text-red-600 w-6 h-6"></i>
-                            <div>
-                                <strong class="block mb-1 text-red-900">Atenção (Cherry-picking)</strong>
-                                <p class="text-sm font-medium text-red-700/90">Está a torturar os dados até que eles confessem! Selecionar apenas os subgrupos favoráveis cria uma falsa evidência científica.</p>
+                        
+                        <div class="mt-4 sm:mt-6 transition-all duration-500 overflow-hidden ${isCherryPicking ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}">
+                            <div class="bg-red-100 text-red-800 p-3 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-red-300 flex gap-2 sm:gap-3 items-start shadow-sm">
+                                <i data-lucide="alert-triangle" class="shrink-0 text-red-600 w-5 h-5 sm:w-6 sm:h-6 mt-0.5"></i>
+                                <div>
+                                    <strong class="block mb-0.5 sm:mb-1 text-red-900 text-sm sm:text-base">Atenção (Cherry-picking)</strong>
+                                    <p class="text-xs sm:text-sm font-medium text-red-700/90 leading-tight sm:leading-normal">Está a torturar os dados até que eles confessem! Selecionar apenas os subgrupos favoráveis cria uma falsa evidência científica.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="lg:col-span-7">
+                <div class="lg:col-span-7 h-full mt-4 lg:mt-0">
                     ${metaHtml}
                 </div>
             `;
@@ -688,20 +688,20 @@
         function renderPage4(container) {
             container.innerHTML = `
                 <div class="animate-fade-in">
-                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-8">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 sm:gap-6 mb-6 sm:mb-8">
                         <div class="flex-1 max-w-3xl">
-                            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
-                                <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="eye-off" class="text-blue-600 w-8 h-8"></i></div>
+                            <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-800 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                                <div class="p-2 sm:p-3 bg-blue-100 rounded-xl"><i data-lucide="eye-off" class="text-blue-600 w-6 h-6 sm:w-8 sm:h-8"></i></div>
                                 A Gaveta de Arquivos: Viés de Publicação
                             </h2>
-                            <p class="text-slate-600 text-lg">
+                            <p class="text-slate-600 text-base sm:text-lg">
                                 As revistas médicas têm uma tendência histórica para publicar apenas estudos com resultados <strong>positivos</strong> ou inovadores. 
                                 Estudos em que a intervenção falha acabam arquivados "na gaveta". Simule este viés abaixo e observe o impacto no consenso geral.
                             </p>
                         </div>
-                        <div class="lg:mt-4 shrink-0" id="p4-btn-container"></div>
+                        <div class="mt-2 lg:mt-4 shrink-0 w-full lg:w-auto" id="p4-btn-container"></div>
                     </div>
-                    <div class="grid lg:grid-cols-12 gap-8" id="p4-dynamic-area"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8" id="p4-dynamic-area"></div>
                     ${renderStepNavigation(true, true)}
                 </div>
             `;
@@ -714,11 +714,11 @@
             if (!btnArea || !dataArea) return;
 
             btnArea.innerHTML = `
-                <button onclick="toggleHideNegative()" class="w-full lg:w-auto px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 border-2 shadow-sm ${
+                <button onclick="toggleHideNegative()" class="w-full lg:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 border-2 shadow-sm text-sm sm:text-base ${
                     state.p4HideNegative ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700 shadow-md'
                 }">
-                    <i data-lucide="${state.p4HideNegative ? 'eye-off' : 'book-open'}" class="${state.p4HideNegative ? 'text-red-500' : ''} w-6 h-6"></i>
-                    ${state.p4HideNegative ? 'Mostrar Estudos Não Publicados' : 'Ocultar Estudos Negativos'}
+                    <i data-lucide="${state.p4HideNegative ? 'eye-off' : 'book-open'}" class="${state.p4HideNegative ? 'text-red-500' : ''} w-5 h-5 sm:w-6 sm:h-6 shrink-0"></i>
+                    <span>${state.p4HideNegative ? 'Mostrar Estudos Não Publicados' : 'Ocultar Estudos Negativos'}</span>
                 </button>
             `;
 
@@ -739,8 +739,8 @@
                 const yPos = Math.max(5, Math.min(95, ((trial.n - 10) / 40) * 100));
                 
                 dotsHtml += `
-                    <div class="absolute rounded-full transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-2 border-white shadow-sm flex items-center justify-center
-                        ${isVisible ? 'opacity-90 scale-100 w-5 h-5' : 'opacity-0 scale-0 w-0 h-0 pointer-events-none'}
+                    <div class="absolute rounded-full transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] border sm:border-2 border-white shadow-sm flex items-center justify-center
+                        ${isVisible ? 'opacity-90 scale-100 w-4 h-4 sm:w-5 sm:h-5' : 'opacity-0 scale-0 w-0 h-0 pointer-events-none'}
                         ${trial.isPublished ? 'bg-blue-500 hover:bg-blue-600 z-20' : 'bg-slate-400 hover:bg-slate-500 z-10'}"
                         style="left: ${xPos}%; bottom: ${yPos}%"
                         title="Estudo ${trial.id} | RR: ${rr.toFixed(2)} | Tamanho: ${trial.n * 2} | Status: ${trial.isPublished ? 'Publicado' : 'Não Publicado'}">
@@ -749,62 +749,62 @@
             });
 
             dataArea.innerHTML = `
-                <div class="lg:col-span-7 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col min-h-[450px]">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-bold text-slate-700 tracking-wide uppercase text-sm">Distribuição dos Ensaios (Funnel Plot Simplificado)</h3>
-                        <span class="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">N = ${displayedTrials.length} estudos</span>
+                <div class="lg:col-span-7 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col min-h-[350px] md:min-h-[450px]">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2">
+                        <h3 class="font-bold text-slate-700 tracking-wide uppercase text-xs sm:text-sm">Distribuição dos Ensaios <span class="hidden sm:inline">(Funnel Plot Simplificado)</span></h3>
+                        <span class="text-[10px] sm:text-xs font-bold text-slate-400 bg-slate-100 px-2 sm:px-3 py-1 rounded-full border border-slate-200 self-end sm:self-auto">N = ${displayedTrials.length} estudos</span>
                     </div>
                     
                     <div class="flex-grow relative bg-slate-50/50 rounded-xl border border-slate-100">
-                        <div class="absolute top-4 bottom-10 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
-                        <div class="absolute top-4 bottom-10 left-10 w-px bg-slate-200 z-0"></div>
-                        <div class="absolute bottom-10 left-8 right-8 h-px bg-slate-300 z-0"></div>
+                        <div class="absolute top-4 bottom-8 sm:bottom-10 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
+                        <div class="absolute top-4 bottom-8 sm:bottom-10 left-6 sm:left-10 w-px bg-slate-200 z-0"></div>
+                        <div class="absolute bottom-8 sm:bottom-10 left-6 sm:left-8 right-6 sm:right-8 h-px bg-slate-300 z-0"></div>
                         
-                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-400 bg-white px-2">RR = 1 (Nenhum Efeito)</div>
-                        <div class="absolute top-1/2 -left-3 -translate-y-1/2 -rotate-90 text-xs font-bold text-slate-400 tracking-widest uppercase">Tamanho da Amostra</div>
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs font-bold text-slate-400 bg-white px-1 sm:px-2 whitespace-nowrap">RR = 1 <span class="hidden sm:inline">(Nenhum Efeito)</span></div>
+                        <div class="absolute top-1/2 -left-3 sm:-left-3 -translate-y-1/2 -rotate-90 text-[8px] sm:text-xs font-bold text-slate-400 tracking-widest uppercase whitespace-nowrap">Tamanho da Amostra</div>
                         
                         <div class="absolute top-2 left-1/2 right-4 h-full bg-green-50/30 rounded-tr-xl z-0 pointer-events-none"></div>
-                        <div class="absolute top-2 left-4 right-1/2 h-full bg-red-50/30 rounded-tl-xl z-0 pointer-events-none"></div>
+                        <div class="absolute top-2 left-6 sm:left-4 right-1/2 h-full bg-red-50/30 rounded-tl-xl z-0 pointer-events-none"></div>
 
-                        <div class="relative w-full h-full z-10 px-10 pb-10 pt-4">
+                        <div class="relative w-full h-full z-10 px-6 sm:px-10 pb-8 sm:pb-10 pt-4">
                             ${dotsHtml}
                         </div>
                     </div>
                     
-                    <div class="mt-4 flex justify-center gap-6 text-sm font-medium text-slate-500">
-                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full border border-white"></div> Estudos Publicados</span>
-                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-400 rounded-full border border-white"></div> Estudos na Gaveta</span>
+                    <div class="mt-4 flex flex-wrap justify-center gap-3 sm:gap-6 text-xs sm:text-sm font-medium text-slate-500">
+                        <span class="flex items-center gap-1 sm:gap-2"><div class="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full border border-white shrink-0"></div> Estudos Publicados</span>
+                        <span class="flex items-center gap-1 sm:gap-2"><div class="w-2 h-2 sm:w-3 sm:h-3 bg-slate-400 rounded-full border border-white shrink-0"></div> Estudos na Gaveta</span>
                     </div>
                 </div>
 
-                <div class="lg:col-span-5 relative overflow-hidden rounded-3xl group">
+                <div class="lg:col-span-5 relative overflow-hidden rounded-2xl sm:rounded-3xl group mt-4 lg:mt-0 min-h-[300px]">
                     <div class="absolute inset-0 transition-colors duration-1000 ${state.p4HideNegative ? 'bg-gradient-to-br from-red-600 to-orange-600' : 'bg-gradient-to-br from-blue-800 to-indigo-900'}"></div>
-                    <i data-lucide="activity" class="absolute -right-16 -bottom-16 text-white opacity-10 transform group-hover:scale-110 transition-transform duration-1000 w-[180px] h-[180px]"></i>
+                    <i data-lucide="activity" class="absolute -right-8 -bottom-8 sm:-right-16 sm:-bottom-16 text-white opacity-10 transform group-hover:scale-110 transition-transform duration-1000 w-[100px] h-[100px] sm:w-[180px] sm:h-[180px]"></i>
                     
-                    <div class="relative z-10 p-8 h-full flex flex-col justify-center text-center text-white">
-                        <div class="bg-white/10 inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-6 mx-auto border border-white/20 backdrop-blur-sm">
+                    <div class="relative z-10 p-6 sm:p-8 h-full flex flex-col justify-center text-center text-white">
+                        <div class="bg-white/10 inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-4 sm:mb-6 mx-auto border border-white/20 backdrop-blur-sm">
                             Resultado da Literatura
                         </div>
                         
-                        <p class="text-8xl font-black mb-2 tracking-tighter drop-shadow-lg">${metaAnalysis.rr.toFixed(2)}</p>
-                        <p class="text-white/80 font-mono text-lg mb-10 bg-black/20 py-2 px-4 rounded-xl inline-block mx-auto border border-white/10">
+                        <p class="text-6xl md:text-8xl font-black mb-1 sm:mb-2 tracking-tighter drop-shadow-lg">${metaAnalysis.rr.toFixed(2)}</p>
+                        <p class="text-white/80 font-mono text-sm sm:text-lg mb-6 sm:mb-10 bg-black/20 py-1.5 sm:py-2 px-3 sm:px-4 rounded-xl inline-block mx-auto border border-white/10">
                             IC 95%: [${metaAnalysis.lowerRr.toFixed(2)}, ${metaAnalysis.upperRr.toFixed(2)}]
                         </p>
                         
                         <div class="mt-auto">
                             ${state.p4HideNegative ? `
-                                <div class="bg-white text-red-700 p-5 rounded-2xl shadow-xl transform animate-bounce-slight border-b-4 border-red-500">
-                                    <p class="font-bold flex items-center justify-center gap-2 text-lg mb-1">
-                                        <i data-lucide="alert-triangle" class="text-red-500 w-5 h-5"></i> Ilusão de Eficácia!
+                                <div class="bg-white text-red-700 p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-xl transform animate-bounce-slight border-b-4 border-red-500">
+                                    <p class="font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-base sm:text-lg mb-1">
+                                        <i data-lucide="alert-triangle" class="text-red-500 w-4 h-4 sm:w-5 sm:h-5"></i> Ilusão de Eficácia!
                                     </p>
-                                    <p class="text-sm font-medium text-slate-600 leading-snug">Ao ignorar as falhas, a terapia parece ter um impacto benéfico na mortalidade.</p>
+                                    <p class="text-xs sm:text-sm font-medium text-slate-600 leading-snug">Ao ignorar as falhas, a terapia parece ter um impacto benéfico na mortalidade.</p>
                                 </div>
                             ` : `
-                                <div class="bg-white/20 backdrop-blur-md text-white p-5 rounded-2xl border border-white/30">
-                                    <p class="font-bold flex items-center justify-center gap-2 text-lg mb-1 text-green-300">
-                                        <i data-lucide="check-circle-2" class="w-5 h-5"></i> Conclusão Real
+                                <div class="bg-white/20 backdrop-blur-md text-white p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-white/30">
+                                    <p class="font-bold flex items-center justify-center gap-1.5 sm:gap-2 text-base sm:text-lg mb-1 text-green-300">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4 sm:w-5 sm:h-5"></i> Conclusão Real
                                     </p>
-                                    <p class="text-sm font-medium text-white/90 leading-snug">Ao incluir toda a evidência, fica claro que a terapia não altera o risco absoluto.</p>
+                                    <p class="text-xs sm:text-sm font-medium text-white/90 leading-snug">Ao incluir toda a evidência, fica claro que a terapia não altera o risco absoluto.</p>
                                 </div>
                             `}
                         </div>
@@ -840,15 +840,15 @@
             ];
 
             let lessonsHtml = lessons.map(l => `
-                <div class="p-8 rounded-3xl border-2 border-${l.color}-200 bg-white hover:bg-${l.color}-50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden">
-                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-10 transition-transform group-hover:scale-150 bg-${l.color}-500"></div>
-                    <div class="flex flex-col gap-4 relative z-10">
-                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-white bg-white">
-                            <i data-lucide="${l.icon}" class="text-${l.color}-500 w-8 h-8"></i>
+                <div class="p-6 sm:p-8 rounded-2xl sm:rounded-3xl border-2 border-${l.color}-200 bg-white hover:bg-${l.color}-50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 sm:-right-8 sm:-top-8 w-24 h-24 sm:w-32 sm:h-32 rounded-full opacity-10 transition-transform group-hover:scale-150 bg-${l.color}-500"></div>
+                    <div class="flex flex-col gap-3 sm:gap-4 relative z-10">
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm border border-white bg-white shrink-0">
+                            <i data-lucide="${l.icon}" class="text-${l.color}-500 w-6 h-6 sm:w-8 sm:h-8"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold text-slate-800 mb-3 leading-snug">${l.title}</h3>
-                            <p class="text-slate-600 leading-relaxed font-medium">${l.text}</p>
+                            <h3 class="text-lg sm:text-xl font-bold text-slate-800 mb-2 sm:mb-3 leading-snug">${l.title}</h3>
+                            <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">${l.text}</p>
                         </div>
                     </div>
                 </div>
@@ -856,25 +856,25 @@
 
             container.innerHTML = `
                 <div class="animate-fade-in">
-                    <div class="text-center mb-12">
-                        <div class="inline-flex items-center justify-center p-4 bg-green-100 rounded-full mb-4">
-                            <i data-lucide="check-circle-2" class="text-green-600 w-12 h-12"></i>
+                    <div class="text-center mb-8 sm:mb-12">
+                        <div class="inline-flex items-center justify-center p-3 sm:p-4 bg-green-100 rounded-full mb-3 sm:mb-4">
+                            <i data-lucide="check-circle-2" class="text-green-600 w-8 h-8 sm:w-12 sm:h-12"></i>
                         </div>
-                        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-800 tracking-tight">
+                        <h2 class="text-2xl sm:text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight px-2">
                             Lições para a Prática Médica
                         </h2>
-                        <p class="text-slate-500 mt-4 text-lg max-w-2xl mx-auto">
+                        <p class="text-slate-500 mt-3 sm:mt-4 text-sm sm:text-lg max-w-2xl mx-auto px-4">
                             A brincadeira com os dados ilustra perigos reais e muito comuns na interpretação da literatura médica contemporânea.
                         </p>
                     </div>
                     
-                    <div class="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto">
                         ${lessonsHtml}
                     </div>
 
-                    <div class="mt-16 relative p-[3px] rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 max-w-3xl mx-auto shadow-xl">
-                        <div class="bg-white p-8 sm:p-10 rounded-[21px] text-center">
-                            <p class="text-2xl sm:text-3xl font-bold text-slate-800 italic leading-snug">
+                    <div class="mt-10 sm:mt-16 relative p-[2px] sm:p-[3px] rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 max-w-3xl mx-auto shadow-xl">
+                        <div class="bg-white p-6 sm:p-10 rounded-[14px] sm:rounded-[21px] text-center">
+                            <p class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 italic leading-snug">
                                 "A próxima vez que ler sobre um tratamento milagroso baseado numa análise de subgrupo de um estudo pequeno, lembre-se da Terapia DICE."
                             </p>
                         </div>

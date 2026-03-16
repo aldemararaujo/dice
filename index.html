@@ -1,869 +1,892 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Activity, Users, AlertTriangle, BookOpen, Filter, EyeOff, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
-
-// --- UTILITÁRIOS ESTATÍSTICOS ---
-const calculateStats = (a, b, c, d) => {
-  // Correção de continuidade para células com zero
-  let adjA = a, adjB = b, adjC = c, adjD = d;
-  if (a === 0 || b === 0 || c === 0 || d === 0) {
-    adjA += 0.5; adjB += 0.5; adjC += 0.5; adjD += 0.5;
-  }
-
-  const n1 = adjA + adjB;
-  const n2 = adjC + adjD;
-  const eer = adjA / n1;
-  const cer = adjC / n2;
-
-  // Risco Relativo e IC 95%
-  const rr = eer / cer;
-  const seLogRr = Math.sqrt((1 / adjA) + (1 / adjC) - (1 / n1) - (1 / n2));
-  const lowerRr = Math.exp(Math.log(rr) - 1.96 * seLogRr);
-  const upperRr = Math.exp(Math.log(rr) + 1.96 * seLogRr);
-
-  // Redução Absoluta do Risco (ARR) e IC 95%
-  const arr = cer - eer;
-  const seArr = Math.sqrt((cer * (1 - cer)) / n2 + (eer * (1 - eer)) / n1);
-  const lowerArr = arr - 1.96 * seArr;
-  const upperArr = arr + 1.96 * seArr;
-
-  // NNT / NNH
-  let nnt = null, nntLower = null, nntUpper = null;
-  let nnh = null, nnhLower = null, nnhUpper = null;
-  let isSignificant = (lowerRr > 1 || upperRr < 1);
-
-  if (arr > 0) {
-    nnt = 1 / arr;
-    if (lowerArr > 0) {
-      nntUpper = 1 / lowerArr;
-      nntLower = 1 / upperArr;
-    }
-  } else if (arr < 0) {
-    nnh = 1 / Math.abs(arr);
-    if (upperArr < 0) {
-      nnhUpper = 1 / Math.abs(upperArr);
-      nnhLower = 1 / Math.abs(lowerArr);
-    }
-  }
-
-  return { rr, lowerRr, upperRr, arr, lowerArr, upperArr, nnt, nntLower, nntUpper, nnh, nnhLower, nnhUpper, isSignificant };
-};
-
-// Dados simulados baseados no artigo para as páginas 3 e 4
-const generateTrials = () => {
-  const trials = [];
-  const colors = ['Vermelho', 'Verde', 'Branco'];
-  for (let i = 1; i <= 44; i++) {
-    const isFirst = i % 2 !== 0; // Ímpares são 1º ensaio
-    const color = colors[i % 3];
-    const n = Math.floor(Math.random() * 40) + 10; // 10 a 50 pacientes por grupo
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Milagre da Terapia DICE</title>
     
-    // Inserindo vieses simulados, apenas no número observado, pois os dados reais não tinham viés
-    // Para replicar o artigo, vamos "forçar" levemente a estatística nos subgrupos
-    let probTrt = 1/6;
-    if (color === 'Vermelho') probTrt *= 1.1; 
-    if (color !== 'Vermelho' && !isFirst) probTrt *= 0.7; // "Eficaz" em brancos/verdes de investigadores experientes
-
-    let trtDeaths = 0, ctrlDeaths = 0;
-    for(let j=0; j<n; j++) {
-      if (Math.random() < probTrt) trtDeaths++;
-      if (Math.random() < 1/6) ctrlDeaths++;
-    }
-
-    const isPublished = color !== 'Vermelho' && trtDeaths < ctrlDeaths; // Viés de publicação, publica mais os positivos
-
-    trials.push({
-      id: i, n, trtDeaths, ctrlDeaths, color, isFirst, isPublished,
-      stats: calculateStats(trtDeaths, n - trtDeaths, ctrlDeaths, n - ctrlDeaths)
-    });
-  }
-  return trials;
-};
-
-const trialsData = generateTrials();
-
-// --- COMPONENTES UI REUTILIZÁVEIS ---
-const StepNavigation = ({ currentStep, onNext, onPrev }) => (
-  <div className="mt-12 pt-6 border-t border-slate-200 flex items-center justify-between">
-    {onPrev ? (
-      <button 
-        onClick={onPrev}
-        className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-      >
-        <ArrowLeft size={20} /> Passo Anterior
-      </button>
-    ) : <div></div>}
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    {onNext ? (
-      <button 
-        onClick={onNext}
-        className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-      >
-        Próximo Passo <ArrowRight size={20} />
-      </button>
-    ) : <div></div>}
-  </div>
-);
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState(1);
+    <style>
+        /* Animações e Utilitários Customizados */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes ping-slow {
+            75%, 100% { transform: scale(1.5); opacity: 0; }
+        }
+        .animate-ping-slow {
+            animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        @keyframes bounce-slight {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }
+        .animate-bounce-slight {
+            animation: bounce-slight 2s infinite ease-in-out;
+        }
+        
+        /* Ocultar barra de rolagem */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  const goToNext = () => setActiveTab(prev => Math.min(prev + 1, 5));
-  const goToPrev = () => setActiveTab(prev => Math.max(prev - 1, 1));
+        /* Estilo para ícones inseridos dinamicamente */
+        .lucide { display: inline-block; vertical-align: middle; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
-      {/* HEADER */}
-      <header className="bg-blue-900 text-white p-6 shadow-md z-10">
-        <div className="max-w-6xl mx-auto flex items-center gap-4">
-          <Activity size={32} className="text-blue-300" />
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">O Milagre da Terapia DICE</h1>
-            <p className="text-blue-200 text-sm font-medium mt-1">Simulador Interativo de Ensaios Clínicos e Medicina Baseada em Evidências</p>
-          </div>
+    <!-- HEADER -->
+    <header class="bg-blue-900 text-white p-6 shadow-md z-10">
+        <div class="max-w-6xl mx-auto flex items-center gap-4">
+            <i data-lucide="activity" class="w-8 h-8 text-blue-300"></i>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">O Milagre da Terapia DICE</h1>
+                <p class="text-blue-200 text-sm font-medium mt-1">Simulador Interativo de Ensaios Clínicos e Medicina Baseada em Evidências</p>
+            </div>
         </div>
-      </header>
+    </header>
 
-      {/* NAVIGATION TABS */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm overflow-hidden">
-        <div className="max-w-6xl mx-auto flex overflow-x-auto no-scrollbar">
-          {[
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm overflow-hidden">
+        <div class="max-w-6xl mx-auto flex overflow-x-auto no-scrollbar" id="nav-tabs">
+            <!-- Abas geradas via JS -->
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow max-w-6xl mx-auto w-full p-4 sm:p-6 lg:p-8">
+        <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200" id="main-content">
+            <!-- Conteúdo injetado via JS -->
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-10 px-6 mt-auto text-sm text-center">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <p class="italic bg-slate-800/50 p-4 rounded-lg inline-block text-slate-300">
+                Counsell CE, Clarke MJ, Slattery J, Sandercock PA. The miracle of DICE therapy for acute stroke: fact or fictional product of subgroup analysis? BMJ. 1994 Dec 24, 31;309(6970):1677, 81. doi: 10.1136/bmj.309.6970.1677. PMID: 7819982; PMCID: PMC2542663. URL: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/" target="_blank" rel="noreferrer" class="text-blue-400 hover:text-blue-300 hover:underline transition-colors">https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/</a>
+            </p>
+            <div class="border-t border-slate-800 pt-6 flex flex-col items-center justify-center gap-1">
+                <p class="font-medium text-slate-300">Materiais complementares da disciplina de Pesquisa em Ciências da Saúde.</p>
+                <p>Universidade Estadual de Ciências da Saúde de Alagoas (UNCISAL)</p>
+                <p>Maceió, Alagoas, Brasil</p>
+                <p class="mt-4 text-slate-500 font-mono">© 2026</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- LÓGICA DA APLICAÇÃO (JavaScript) -->
+    <script>
+        // --- 1. UTILITÁRIOS ESTATÍSTICOS ---
+        const calculateStats = (a, b, c, d) => {
+            let adjA = a, adjB = b, adjC = c, adjD = d;
+            if (a === 0 || b === 0 || c === 0 || d === 0) {
+                adjA += 0.5; adjB += 0.5; adjC += 0.5; adjD += 0.5;
+            }
+
+            const n1 = adjA + adjB;
+            const n2 = adjC + adjD;
+            const eer = adjA / n1;
+            const cer = adjC / n2;
+
+            const rr = eer / cer;
+            const seLogRr = Math.sqrt((1 / adjA) + (1 / adjC) - (1 / n1) - (1 / n2));
+            const lowerRr = Math.exp(Math.log(rr) - 1.96 * seLogRr);
+            const upperRr = Math.exp(Math.log(rr) + 1.96 * seLogRr);
+
+            const arr = cer - eer;
+            const seArr = Math.sqrt((cer * (1 - cer)) / n2 + (eer * (1 - eer)) / n1);
+            const lowerArr = arr - 1.96 * seArr;
+            const upperArr = arr + 1.96 * seArr;
+
+            let nnt = null, nntLower = null, nntUpper = null;
+            let nnh = null, nnhLower = null, nnhUpper = null;
+            let isSignificant = (lowerRr > 1 || upperRr < 1);
+
+            if (arr > 0) {
+                nnt = 1 / arr;
+                if (lowerArr > 0) { nntUpper = 1 / lowerArr; nntLower = 1 / upperArr; }
+            } else if (arr < 0) {
+                nnh = 1 / Math.abs(arr);
+                if (upperArr < 0) { nnhUpper = 1 / Math.abs(upperArr); nnhLower = 1 / Math.abs(lowerArr); }
+            }
+
+            return { rr, lowerRr, upperRr, arr, lowerArr, upperArr, nnt, nntLower, nntUpper, nnh, nnhLower, nnhUpper, isSignificant };
+        };
+
+        const generateTrials = () => {
+            const trials = [];
+            const colors = ['Vermelho', 'Verde', 'Branco'];
+            for (let i = 1; i <= 44; i++) {
+                const isFirst = i % 2 !== 0; 
+                const color = colors[i % 3];
+                const n = Math.floor(Math.random() * 40) + 10; 
+                
+                let probTrt = 1/6;
+                if (color === 'Vermelho') probTrt *= 1.1; 
+                if (color !== 'Vermelho' && !isFirst) probTrt *= 0.7; 
+
+                let trtDeaths = 0, ctrlDeaths = 0;
+                for(let j=0; j<n; j++) {
+                    if (Math.random() < probTrt) trtDeaths++;
+                    if (Math.random() < 1/6) ctrlDeaths++;
+                }
+
+                const isPublished = color !== 'Vermelho' && trtDeaths < ctrlDeaths; 
+
+                trials.push({
+                    id: i, n, trtDeaths, ctrlDeaths, color, isFirst, isPublished,
+                    stats: calculateStats(trtDeaths, n - trtDeaths, ctrlDeaths, n - ctrlDeaths)
+                });
+            }
+            return trials;
+        };
+
+        const trialsData = generateTrials();
+
+        // --- 2. ESTADO GLOBAL ---
+        const state = {
+            activeTab: 1,
+            p1DiceFace: 1,
+            p1IntervalId: null,
+            p2SampleSize: 20,
+            p2IsRolling: false,
+            p2Results: null,
+            p3Filters: { colorRed: true, colorGreen: true, colorWhite: true, firstTrial: true, secondTrial: true },
+            p4HideNegative: false
+        };
+
+        const tabs = [
             { id: 1, title: 'Introdução' },
             { id: 2, title: 'O Fator Acaso' },
             { id: 3, title: 'Subgrupos' },
             { id: 4, title: 'Viés de Publicação' },
-            { id: 5, title: 'Lições Práticas' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-4 py-4 min-w-[140px] text-center font-medium transition-colors border-b-4 ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-700 bg-blue-50/50'
-                  : 'border-transparent text-slate-500 hover:text-blue-600 hover:bg-slate-50'
-              }`}
-            >
-              <span className="block text-xs uppercase tracking-wider mb-1 opacity-70">Passo {tab.id}</span>
-              {tab.title}
-            </button>
-          ))}
-        </div>
-      </nav>
+            { id: 5, title: 'Lições Práticas' }
+        ];
 
-      {/* MAIN CONTENT */}
-      <main className="flex-grow max-w-6xl mx-auto w-full p-4 sm:p-6 lg:p-8">
-        <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
-          {activeTab === 1 && <Page1 onNext={goToNext} />}
-          {activeTab === 2 && <Page2 onNext={goToNext} onPrev={goToPrev} />}
-          {activeTab === 3 && <Page3 onNext={goToNext} onPrev={goToPrev} />}
-          {activeTab === 4 && <Page4 onNext={goToNext} onPrev={goToPrev} />}
-          {activeTab === 5 && <Page5 onPrev={goToPrev} />}
-        </div>
-      </main>
+        // --- 3. FUNÇÕES DE RENDERIZAÇÃO GERAL ---
+        function initApp() {
+            renderNav();
+            renderContent();
+        }
 
-      {/* FOOTER */}
-      <footer className="bg-slate-900 text-slate-400 py-10 px-6 mt-auto text-sm text-center">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <p className="italic bg-slate-800/50 p-4 rounded-lg inline-block text-slate-300">
-            Counsell CE, Clarke MJ, Slattery J, Sandercock PA. The miracle of DICE therapy for acute stroke: fact or fictional product of subgroup analysis? BMJ. 1994 Dec 24, 31;309(6970):1677, 81. doi: 10.1136/bmj.309.6970.1677. PMID: 7819982; PMCID: PMC2542663. URL: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/" target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline transition-colors">https://pmc.ncbi.nlm.nih.gov/articles/PMC2542663/</a>
-          </p>
-          <div className="border-t border-slate-800 pt-6 flex flex-col items-center justify-center gap-1">
-            <p className="font-medium text-slate-300">Materiais complementares da disciplina de Pesquisa em Ciências da Saúde.</p>
-            <p>Universidade Estadual de Ciências da Saúde de Alagoas (UNCISAL)</p>
-            <p>Maceió, Alagoas, Brasil</p>
-            <p className="mt-4 text-slate-500 font-mono">© 2026</p>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
+        function setTab(tabId) {
+            state.activeTab = tabId;
+            // Limpar intervalos se sair da página 1
+            if (tabId !== 1 && state.p1IntervalId) {
+                clearInterval(state.p1IntervalId);
+                state.p1IntervalId = null;
+            }
+            renderNav();
+            renderContent();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
-// --- PÁGINAS ---
+        function goToNext() { setTab(Math.min(state.activeTab + 1, 5)); }
+        function goToPrev() { setTab(Math.max(state.activeTab - 1, 1)); }
 
-function Page1({ onNext }) {
-  const [diceFace, setDiceFace] = useState(1);
+        function renderNav() {
+            const navContainer = document.getElementById('nav-tabs');
+            navContainer.innerHTML = tabs.map(tab => `
+                <button
+                    onclick="setTab(${tab.id})"
+                    class="flex-1 px-4 py-4 min-w-[140px] text-center font-medium transition-colors border-b-4 ${
+                        state.activeTab === tab.id
+                            ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+                            : 'border-transparent text-slate-500 hover:text-blue-600 hover:bg-slate-50'
+                    }"
+                >
+                    <span class="block text-xs uppercase tracking-wider mb-1 opacity-70">Passo ${tab.id}</span>
+                    ${tab.title}
+                </button>
+            `).join('');
+        }
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDiceFace((prev) => (prev === 6 ? 1 : prev + 1));
-    }, 800);
-    return () => clearInterval(interval);
-  }, []);
-
-  const renderDice = () => {
-    const props = { size: 80, className: "text-blue-600 transition-all duration-300" };
-    switch(diceFace) {
-      case 1: return <Dice1 {...props} />;
-      case 2: return <Dice2 {...props} />;
-      case 3: return <Dice3 {...props} />;
-      case 4: return <Dice4 {...props} />;
-      case 5: return <Dice5 {...props} />;
-      case 6: return <Dice6 {...props} className="text-red-600 scale-110 drop-shadow-md" />;
-      default: return <Dice1 {...props} />;
-    }
-  };
-
-  return (
-    <div className="animate-fade-in">
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-8 flex items-center gap-4">
-        <div className="p-3 bg-blue-100 rounded-xl"><BookOpen className="text-blue-600" size={32} /></div>
-        O Cenário: A Revolucionária "Terapia DICE"
-      </h2>
-      
-      <div className="grid lg:grid-cols-2 gap-10 items-center">
-        <div className="space-y-6 text-lg text-slate-700 leading-relaxed">
-          <p>
-            Em 1994, investigadores publicaram no prestigiado periódico BMJ um artigo a simular ensaios clínicos com uma intervenção inusitada, a <strong>Terapia DICE</strong> (terapia do dado), para tratar o Acidente Vascular Cerebral agudo.
-          </p>
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-            <p className="font-semibold mb-4">A premissa era simples, rolar um dado para determinar o desfecho do paciente:</p>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                <div className="flex gap-1 text-blue-600"><Dice1 size={20}/><Dice3 size={20}/><Dice5 size={20}/></div>
-                <span>Tirar <strong>1, 2, 3, 4 ou 5</strong> significa <span className="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded">Sobrevivência</span>.</span>
-              </li>
-              <li className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                <div className="flex gap-1 text-red-600"><Dice6 size={20}/></div>
-                <span>Tirar <strong>6</strong> significa <span className="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">Óbito</span>.</span>
-              </li>
-            </ul>
-          </div>
-          <p className="bg-yellow-50 p-4 rounded-xl border-l-4 border-yellow-400 text-yellow-900 text-base">
-            Estatisticamente, a taxa de mortalidade base é de exatos <strong>16,6%</strong> (1 em 6), tanto para quem recebe a "Terapia" quanto para o grupo de controlo. Portanto, a Terapia DICE é, por definição, <strong>100% ineficaz</strong>.
-          </p>
-        </div>
-        
-        <div className="flex flex-col items-center justify-center bg-slate-50 p-12 rounded-3xl border-2 border-dashed border-slate-300 h-full min-h-[400px]">
-          <div className="relative">
-            {renderDice()}
-            {diceFace === 6 && (
-              <div className="absolute -inset-4 bg-red-500/20 rounded-full animate-ping z-[-1]"></div>
-            )}
-          </div>
-          <div className="mt-8 h-12 flex items-center justify-center">
-            {diceFace === 6 ? (
-              <span className="text-red-700 bg-red-100 border border-red-200 px-6 py-2 rounded-full text-xl font-bold flex items-center gap-2 shadow-sm animate-fade-in">
-                <AlertTriangle size={24} /> Resultado: Óbito
-              </span>
-            ) : (
-              <span className="text-green-700 bg-green-100 border border-green-200 px-6 py-2 rounded-full text-xl font-bold flex items-center gap-2 shadow-sm animate-fade-in">
-                <CheckCircle2 size={24} /> Resultado: Sobrevivência
-              </span>
-            )}
-          </div>
-          <p className="mt-6 text-sm text-slate-500 text-center max-w-xs">
-            Nesta simulação, o puro acaso é o único fator que decide a vida ou a morte do paciente.
-          </p>
-        </div>
-      </div>
-      
-      <StepNavigation onNext={onNext} currentStep={1} />
-    </div>
-  );
-}
-
-function Page2({ onNext, onPrev }) {
-  const [sampleSize, setSampleSize] = useState(20);
-  const [isRolling, setIsRolling] = useState(false);
-  const [results, setResults] = useState(null);
-
-  const handleRoll = () => {
-    setIsRolling(true);
-    // Limpar resultados anteriores suavemente
-    if(results) setResults(null);
-    
-    setTimeout(() => {
-      let trtDeaths = 0;
-      let ctrlDeaths = 0;
-      
-      for(let i = 0; i < sampleSize; i++) {
-        if (Math.ceil(Math.random() * 6) === 6) trtDeaths++;
-        if (Math.ceil(Math.random() * 6) === 6) ctrlDeaths++;
-      }
-      
-      const stats = calculateStats(trtDeaths, sampleSize - trtDeaths, ctrlDeaths, sampleSize - ctrlDeaths);
-      
-      setResults({
-        trtDeaths,
-        trtSurvivals: sampleSize - trtDeaths,
-        ctrlDeaths,
-        ctrlSurvivals: sampleSize - ctrlDeaths,
-        stats
-      });
-      setIsRolling(false);
-    }, 800); // Reduzido ligeiramente para melhor UX
-  };
-
-  return (
-    <div className="animate-fade-in">
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
-        <div className="p-3 bg-blue-100 rounded-xl"><Users className="text-blue-600" size={32} /></div>
-        O Fator Acaso em Amostras Pequenas
-      </h2>
-      <p className="text-slate-600 text-lg mb-8 max-w-3xl">
-        Escolha o tamanho da amostra (número de pacientes por grupo) e simule um Ensaio Clínico. 
-        Como a mortalidade real é igual em ambos os grupos, <strong>qualquer diferença observada será puro acaso.</strong>
-      </p>
-
-      <div className="bg-slate-50 p-8 rounded-2xl mb-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-slate-200 shadow-sm">
-        <div className="flex-1 w-full">
-          <div className="flex justify-between items-end mb-4">
-            <label className="block text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              Tamanho da Amostra (por grupo)
-            </label>
-            <span className="text-blue-700 font-black text-3xl bg-blue-100 px-4 py-1 rounded-lg">
-              {sampleSize}
-            </span>
-          </div>
-          <input 
-            type="range" 
-            min="10" max="200" step="10"
-            value={sampleSize} 
-            onChange={(e) => setSampleSize(parseInt(e.target.value))}
-            className="w-full h-3 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-          <div className="flex justify-between mt-2 text-xs text-slate-400 font-medium">
-            <span>Pequena (10)</span>
-            <span>Média (100)</span>
-            <span>Grande (200)</span>
-          </div>
-        </div>
-        
-        <div className="w-full md:w-auto flex justify-center border-t md:border-t-0 md:border-l border-slate-200 pt-6 md:pt-0 md:pl-8">
-          <button 
-            onClick={handleRoll}
-            disabled={isRolling}
-            className={`w-full md:w-auto px-8 py-5 rounded-2xl font-bold text-white transition-all min-w-[240px] flex justify-center items-center gap-3 text-lg ${
-              isRolling 
-                ? 'bg-slate-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700 shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
-            }`}
-          >
-            {isRolling ? <Dice6 className="animate-spin" size={28} /> : <Dice3 size={28} />}
-            {isRolling ? 'A Processar Dados...' : 'Iniciar Ensaio Clínico'}
-          </button>
-        </div>
-      </div>
-
-      {/* RESULTADOS DA SIMULAÇÃO */}
-      <div className={`transition-all duration-500 ease-in-out ${results ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none hidden'}`}>
-        {results && (
-          <div className="grid lg:grid-cols-12 gap-8">
-            {/* Tabela de Contingência */}
-            <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-md">
-              <div className="bg-slate-800 p-4 text-white font-bold text-center tracking-wide uppercase text-sm flex items-center justify-center gap-2">
-                <Activity size={18} /> Resultados Observados do Estudo
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-center">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
-                      <th className="p-4 border-b border-r font-semibold text-left pl-6">Grupo de Estudo</th>
-                      <th className="p-4 border-b border-r text-red-600 font-bold">Óbitos<br/><span className="text-xs font-normal">(Dado = 6)</span></th>
-                      <th className="p-4 border-b border-r text-green-600 font-bold">Sobreviventes<br/><span className="text-xs font-normal">(Dado 1 a 5)</span></th>
-                      <th className="p-4 border-b font-semibold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b transition-colors hover:bg-slate-50">
-                      <td className="p-4 border-r font-bold text-left pl-6 text-slate-700">Terapia DICE</td>
-                      <td className="p-4 border-r text-2xl font-medium">{results.trtDeaths}</td>
-                      <td className="p-4 border-r text-2xl font-medium">{results.trtSurvivals}</td>
-                      <td className="p-4 bg-slate-50 text-lg font-medium text-slate-500">{sampleSize}</td>
-                    </tr>
-                    <tr className="transition-colors hover:bg-slate-50">
-                      <td className="p-4 border-r font-bold text-left pl-6 text-slate-700">Controlo</td>
-                      <td className="p-4 border-r text-2xl font-medium">{results.ctrlDeaths}</td>
-                      <td className="p-4 border-r text-2xl font-medium">{results.ctrlSurvivals}</td>
-                      <td className="p-4 bg-slate-50 text-lg font-medium text-slate-500">{sampleSize}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Cálculos Estatísticos */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className={`p-6 rounded-2xl border-2 transition-colors duration-500 relative overflow-hidden ${
-                results.stats.isSignificant 
-                  ? 'bg-yellow-50/50 border-yellow-400' 
-                  : 'bg-green-50/50 border-green-400'
-              }`}>
-                {results.stats.isSignificant && (
-                   <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wide">
-                     Anomalia Estatística
-                   </div>
-                )}
-                
-                <h4 className="text-sm text-slate-500 font-bold uppercase mb-2 tracking-wider">Risco Relativo (RR)</h4>
-                <div className="flex items-baseline gap-3">
-                  <p className="text-5xl font-black text-slate-800">
-                    {results.stats.rr.toFixed(2)}
-                  </p>
-                  <p className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-md border border-slate-200">
-                    IC 95%: [{results.stats.lowerRr.toFixed(2)}, {results.stats.upperRr.toFixed(2)}]
-                  </p>
+        function renderStepNavigation(hasPrev, hasNext) {
+            return `
+                <div class="mt-12 pt-6 border-t border-slate-200 flex items-center justify-between w-full">
+                    ${hasPrev ? `
+                        <button onclick="goToPrev()" class="flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i> Passo Anterior
+                        </button>
+                    ` : '<div></div>'}
+                    
+                    ${hasNext ? `
+                        <button onclick="goToNext()" class="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                            Próximo Passo <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                    ` : '<div></div>'}
                 </div>
-                
-                {results.stats.isSignificant ? (
-                  <div className="mt-4 bg-yellow-100 text-yellow-800 p-3 rounded-xl text-sm font-medium flex gap-2 items-start border border-yellow-200">
-                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                    <p><strong>Falso Positivo!</strong> Por puro acaso, a terapia parece ter um efeito significativo. Tente rolar os dados novamente.</p>
-                  </div>
-                ) : (
-                  <div className="mt-4 text-green-700 text-sm font-medium flex items-center gap-2">
-                    <CheckCircle2 size={18} /> Sem diferença estatística significativa.
-                  </div>
-                )}
-              </div>
+            `;
+        }
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-                  <h4 className="text-xs text-slate-400 font-bold uppercase mb-2 tracking-wider">NNT (Benefício)</h4>
-                  {results.stats.nnt ? (
-                    <div>
-                      <p className="text-3xl font-black text-green-600">{Math.ceil(results.stats.nnt)}</p>
-                      {results.stats.isSignificant && (
-                        <p className="text-xs font-medium text-slate-400 mt-1">IC: [{Math.ceil(results.stats.nntLower || 0)}, {Math.ceil(results.stats.nntUpper || 0)}]</p>
-                      )}
+        function renderContent() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = '';
+
+            switch (state.activeTab) {
+                case 1: renderPage1(container); break;
+                case 2: renderPage2(container); break;
+                case 3: renderPage3(container); break;
+                case 4: renderPage4(container); break;
+                case 5: renderPage5(container); break;
+            }
+
+            lucide.createIcons();
+        }
+
+        // --- 4. PÁGINAS ESPECÍFICAS ---
+
+        // PÁGINA 1
+        function renderPage1(container) {
+            container.innerHTML = `
+                <div class="animate-fade-in">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-8 flex items-center gap-4">
+                        <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="book-open" class="text-blue-600 w-8 h-8"></i></div>
+                        O Cenário: A Revolucionária "Terapia DICE"
+                    </h2>
+                    
+                    <div class="grid lg:grid-cols-2 gap-10 items-center">
+                        <div class="space-y-6 text-lg text-slate-700 leading-relaxed">
+                            <p>Em 1994, investigadores publicaram no prestigiado periódico BMJ um artigo a simular ensaios clínicos com uma intervenção inusitada, a <strong>Terapia DICE</strong> (terapia do dado), para tratar o Acidente Vascular Cerebral agudo.</p>
+                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
+                                <p class="font-semibold mb-4">A premissa era simples, rolar um dado para determinar o desfecho do paciente:</p>
+                                <ul class="space-y-3">
+                                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                        <div class="flex gap-1 text-blue-600">
+                                            <i data-lucide="dice-1" class="w-5 h-5"></i>
+                                            <i data-lucide="dice-3" class="w-5 h-5"></i>
+                                            <i data-lucide="dice-5" class="w-5 h-5"></i>
+                                        </div>
+                                        <span>Tirar <strong>1, 2, 3, 4 ou 5</strong> significa <span class="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded">Sobrevivência</span>.</span>
+                                    </li>
+                                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                        <div class="flex gap-1 text-red-600"><i data-lucide="dice-6" class="w-5 h-5"></i></div>
+                                        <span>Tirar <strong>6</strong> significa <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">Óbito</span>.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <p class="bg-yellow-50 p-4 rounded-xl border-l-4 border-yellow-400 text-yellow-900 text-base">
+                                Estatisticamente, a taxa de mortalidade base é de exatos <strong>16,6%</strong> (1 em 6), tanto para quem recebe a "Terapia" quanto para o grupo de controlo. Portanto, a Terapia DICE é, por definição, <strong>100% ineficaz</strong>.
+                            </p>
+                        </div>
+                        
+                        <div class="flex flex-col items-center justify-center bg-slate-50 p-12 rounded-3xl border-2 border-dashed border-slate-300 h-full min-h-[400px]">
+                            <div class="relative" id="p1-dice-container">
+                                <!-- Dice rendered here -->
+                            </div>
+                            <div class="mt-8 h-12 flex items-center justify-center" id="p1-result-container">
+                                <!-- Result rendered here -->
+                            </div>
+                            <p class="mt-6 text-sm text-slate-500 text-center max-w-xs">
+                                Nesta simulação, o puro acaso é o único fator que decide a vida ou a morte do paciente.
+                            </p>
+                        </div>
                     </div>
-                  ) : (
-                    <p className="text-xl text-slate-300 font-medium">Não aplicável</p>
-                  )}
+                    ${renderStepNavigation(false, true)}
                 </div>
+            `;
+
+            updatePage1Dice();
+            
+            if (!state.p1IntervalId) {
+                state.p1IntervalId = setInterval(() => {
+                    state.p1DiceFace = state.p1DiceFace === 6 ? 1 : state.p1DiceFace + 1;
+                    updatePage1Dice();
+                }, 800);
+            }
+        }
+
+        function updatePage1Dice() {
+            const diceContainer = document.getElementById('p1-dice-container');
+            const resultContainer = document.getElementById('p1-result-container');
+            
+            if (!diceContainer || !resultContainer) return;
+
+            const iconClass = state.p1DiceFace === 6 
+                ? "text-red-600 scale-110 drop-shadow-md w-20 h-20 transition-all duration-300" 
+                : "text-blue-600 w-20 h-20 transition-all duration-300";
+            
+            let diceHtml = `<i data-lucide="dice-${state.p1DiceFace}" class="${iconClass}"></i>`;
+            if (state.p1DiceFace === 6) {
+                diceHtml += `<div class="absolute -inset-4 bg-red-500/20 rounded-full animate-ping-slow z-[-1]"></div>`;
+                resultContainer.innerHTML = `
+                    <span class="text-red-700 bg-red-100 border border-red-200 px-6 py-2 rounded-full text-xl font-bold flex items-center gap-2 shadow-sm animate-fade-in">
+                        <i data-lucide="alert-triangle" class="w-6 h-6"></i> Resultado: Óbito
+                    </span>`;
+            } else {
+                resultContainer.innerHTML = `
+                    <span class="text-green-700 bg-green-100 border border-green-200 px-6 py-2 rounded-full text-xl font-bold flex items-center gap-2 shadow-sm animate-fade-in">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i> Resultado: Sobrevivência
+                    </span>`;
+            }
+
+            diceContainer.innerHTML = diceHtml;
+            lucide.createIcons();
+        }
+
+        // PÁGINA 2
+        window.handleSampleSizeChange = function(value) {
+            state.p2SampleSize = parseInt(value);
+            document.getElementById('p2-sample-size-display').innerText = state.p2SampleSize;
+        }
+
+        window.handleRollDicePage2 = function() {
+            if (state.p2IsRolling) return;
+            
+            state.p2IsRolling = true;
+            state.p2Results = null;
+            renderPage2Dynamic(); // Update UI to rolling state
+            
+            setTimeout(() => {
+                let trtDeaths = 0;
+                let ctrlDeaths = 0;
                 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-                  <h4 className="text-xs text-slate-400 font-bold uppercase mb-2 tracking-wider">NNH (Dano)</h4>
-                  {results.stats.nnh ? (
-                    <div>
-                      <p className="text-3xl font-black text-red-600">{Math.ceil(results.stats.nnh)}</p>
-                      {results.stats.isSignificant && (
-                        <p className="text-xs font-medium text-slate-400 mt-1">IC: [{Math.ceil(results.stats.nnhLower || 0)}, {Math.ceil(results.stats.nnhUpper || 0)}]</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-xl text-slate-300 font-medium">Não aplicável</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <StepNavigation onNext={onNext} onPrev={onPrev} currentStep={2} />
-    </div>
-  );
-}
-
-function Page3({ onNext, onPrev }) {
-  const [filters, setFilters] = useState({
-    colorRed: true, colorGreen: true, colorWhite: true,
-    firstTrial: true, secondTrial: true
-  });
-
-  const filteredTrials = useMemo(() => {
-    return trialsData.filter(t => {
-      if (!filters.colorRed && t.color === 'Vermelho') return false;
-      if (!filters.colorGreen && t.color === 'Verde') return false;
-      if (!filters.colorWhite && t.color === 'Branco') return false;
-      if (!filters.firstTrial && t.isFirst) return false;
-      if (!filters.secondTrial && !t.isFirst) return false;
-      return true;
-    });
-  }, [filters]);
-
-  const metaAnalysis = useMemo(() => {
-    if (filteredTrials.length === 0) return null;
-    let totalTrtDeaths = 0, totalTrtN = 0;
-    let totalCtrlDeaths = 0, totalCtrlN = 0;
-    
-    filteredTrials.forEach(t => {
-      totalTrtDeaths += t.trtDeaths;
-      totalTrtN += t.n;
-      totalCtrlDeaths += t.ctrlDeaths;
-      totalCtrlN += t.n;
-    });
-
-    return calculateStats(totalTrtDeaths, totalTrtN - totalTrtDeaths, totalCtrlDeaths, totalCtrlN - totalCtrlDeaths);
-  }, [filteredTrials]);
-
-  const isCherryPicking = !filters.colorRed && !filters.firstTrial;
-
-  // Componente auxiliar para os botões de filtro
-  const ToggleButton = ({ label, checked, onChange, colorClass, subtitle }) => (
-    <button 
-      onClick={() => onChange(!checked)}
-      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
-        checked 
-          ? `bg-${colorClass}-50 border-${colorClass}-500 shadow-sm` 
-          : 'bg-white border-slate-200 hover:border-slate-300'
-      }`}
-    >
-      <div>
-        <div className={`font-bold ${checked ? `text-${colorClass}-800` : 'text-slate-600'}`}>{label}</div>
-        {subtitle && <div className={`text-xs mt-1 ${checked ? `text-${colorClass}-600/80` : 'text-slate-400'}`}>{subtitle}</div>}
-      </div>
-      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-        checked ? `bg-${colorClass}-500 border-${colorClass}-500 text-white` : 'border-slate-300 bg-slate-50'
-      }`}>
-        {checked && <CheckCircle2 size={16} />}
-      </div>
-    </button>
-  );
-
-  return (
-    <div className="animate-fade-in">
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
-        <div className="p-3 bg-blue-100 rounded-xl"><Filter className="text-blue-600" size={32} /></div>
-        A Armadilha das Análises de Subgrupos
-      </h2>
-      <p className="text-slate-600 text-lg mb-8 max-w-4xl">
-        Os autores do artigo tentaram encontrar algum benefício dividindo os dados por <strong>cor do dado</strong> e <strong>experiência do investigador</strong>. 
-        Experimente desmarcar a cor "Vermelho" (dados que "deram azar") e o "1º Ensaio" (pesquisadores "inexperientes") para ver o que acontece com o resultado final.
-      </p>
-
-      <div className="grid lg:grid-cols-12 gap-8">
-        {/* Painel de Filtros */}
-        <div className="lg:col-span-5 space-y-8">
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Subgrupo: Cor do Dado</h3>
-            <div className="space-y-3">
-              <ToggleButton 
-                label="Dados Vermelhos" subtitle="Resultados piores na amostra" colorClass="red"
-                checked={filters.colorRed} onChange={(val) => setFilters({...filters, colorRed: val})} 
-              />
-              <ToggleButton 
-                label="Dados Verdes" colorClass="green"
-                checked={filters.colorGreen} onChange={(val) => setFilters({...filters, colorGreen: val})} 
-              />
-              <ToggleButton 
-                label="Dados Brancos" colorClass="slate"
-                checked={filters.colorWhite} onChange={(val) => setFilters({...filters, colorWhite: val})} 
-              />
-            </div>
-          </div>
-          
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Subgrupo: Experiência</h3>
-            <div className="space-y-3">
-              <ToggleButton 
-                label="1º Ensaio" subtitle="Curva de aprendizagem inicial" colorClass="blue"
-                checked={filters.firstTrial} onChange={(val) => setFilters({...filters, firstTrial: val})} 
-              />
-              <ToggleButton 
-                label="2º Ensaio" subtitle="Investigadores experientes" colorClass="blue"
-                checked={filters.secondTrial} onChange={(val) => setFilters({...filters, secondTrial: val})} 
-              />
-            </div>
-          </div>
-          
-          <div className={`transition-all duration-500 overflow-hidden ${isCherryPicking ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="bg-red-100 text-red-800 p-5 rounded-2xl border-2 border-red-300 flex gap-3 items-start shadow-sm">
-              <AlertTriangle size={24} className="shrink-0 text-red-600" />
-              <div>
-                <strong className="block mb-1 text-red-900">Atenção (Cherry-picking)</strong>
-                <p className="text-sm font-medium text-red-700/90">Está a torturar os dados até que eles confessem! Selecionar apenas os subgrupos favoráveis cria uma falsa evidência científica.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Metanálise Dinâmica */}
-        <div className="lg:col-span-7">
-          {metaAnalysis ? (
-            <div className="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-md h-full flex flex-col items-center justify-center relative overflow-hidden">
-              
-              {/* Marca d'água de background */}
-              <Activity size={200} className="absolute text-slate-50 opacity-50 z-0 rotate-12" />
-
-              <div className="text-center z-10 relative w-full">
-                <div className="inline-block bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wide mb-8 shadow-sm">
-                  Metanálise Combinada ({filteredTrials.length} estudos)
-                </div>
+                for(let i = 0; i < state.p2SampleSize; i++) {
+                    if (Math.ceil(Math.random() * 6) === 6) trtDeaths++;
+                    if (Math.ceil(Math.random() * 6) === 6) ctrlDeaths++;
+                }
                 
-                <div className="mb-10">
-                  <p className="text-sm uppercase font-bold text-slate-500 tracking-widest mb-2">Risco Relativo Global</p>
-                  <div className="flex justify-center items-center gap-4">
-                    <p className={`text-7xl font-black tracking-tighter transition-colors duration-500 ${
-                      metaAnalysis.rr < 0.9 && metaAnalysis.isSignificant ? 'text-green-600 drop-shadow-sm' : 
-                      metaAnalysis.rr > 1.1 && metaAnalysis.isSignificant ? 'text-red-600 drop-shadow-sm' : 'text-slate-800'
-                    }`}>
-                      {metaAnalysis.rr.toFixed(2)}
+                const stats = calculateStats(trtDeaths, state.p2SampleSize - trtDeaths, ctrlDeaths, state.p2SampleSize - ctrlDeaths);
+                
+                state.p2Results = {
+                    trtDeaths,
+                    trtSurvivals: state.p2SampleSize - trtDeaths,
+                    ctrlDeaths,
+                    ctrlSurvivals: state.p2SampleSize - ctrlDeaths,
+                    stats
+                };
+                state.p2IsRolling = false;
+                renderPage2Dynamic(); // Update UI with results
+            }, 800);
+        }
+
+        function renderPage2(container) {
+            container.innerHTML = `
+                <div class="animate-fade-in">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
+                        <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="users" class="text-blue-600 w-8 h-8"></i></div>
+                        O Fator Acaso em Amostras Pequenas
+                    </h2>
+                    <p class="text-slate-600 text-lg mb-8 max-w-3xl">
+                        Escolha o tamanho da amostra (número de pacientes por grupo) e simule um Ensaio Clínico. 
+                        Como a mortalidade real é igual em ambos os grupos, <strong>qualquer diferença observada será puro acaso.</strong>
                     </p>
-                  </div>
-                  <div className="mt-4 inline-flex items-center justify-center bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
-                    <span className="text-slate-500 font-medium mr-2">Intervalo de Confiança 95%:</span>
-                    <span className="font-bold font-mono text-slate-700">[{metaAnalysis.lowerRr.toFixed(2)}, {metaAnalysis.upperRr.toFixed(2)}]</span>
-                  </div>
+
+                    <div id="p2-dynamic-area"></div>
+
+                    ${renderStepNavigation(true, true)}
                 </div>
+            `;
+            renderPage2Dynamic();
+        }
+
+        function renderPage2Dynamic() {
+            const area = document.getElementById('p2-dynamic-area');
+            if (!area) return;
+
+            let html = `
+                <div class="bg-slate-50 p-8 rounded-2xl mb-10 flex flex-col md:flex-row items-center gap-8 justify-between border border-slate-200 shadow-sm">
+                    <div class="flex-1 w-full">
+                        <div class="flex justify-between items-end mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 uppercase tracking-wide">Tamanho da Amostra (por grupo)</label>
+                            <span id="p2-sample-size-display" class="text-blue-700 font-black text-3xl bg-blue-100 px-4 py-1 rounded-lg">${state.p2SampleSize}</span>
+                        </div>
+                        <input type="range" min="10" max="200" step="10" value="${state.p2SampleSize}" 
+                            oninput="handleSampleSizeChange(this.value)"
+                            class="w-full h-3 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                        <div class="flex justify-between mt-2 text-xs text-slate-400 font-medium">
+                            <span>Pequena (10)</span><span>Média (100)</span><span>Grande (200)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-auto flex justify-center border-t md:border-t-0 md:border-l border-slate-200 pt-6 md:pt-0 md:pl-8">
+                        <button onclick="handleRollDicePage2()" ${state.p2IsRolling ? 'disabled' : ''} 
+                            class="w-full md:w-auto px-8 py-5 rounded-2xl font-bold text-white transition-all min-w-[240px] flex justify-center items-center gap-3 text-lg ${
+                            state.p2IsRolling ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
+                        }">
+                            <i data-lucide="${state.p2IsRolling ? 'dice-6' : 'dice-3'}" class="${state.p2IsRolling ? 'animate-spin' : ''} w-7 h-7"></i>
+                            ${state.p2IsRolling ? 'A Processar Dados...' : 'Iniciar Ensaio Clínico'}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (state.p2Results) {
+                const res = state.p2Results;
+                const stats = res.stats;
                 
-                {/* Visualização da Linha de Efeito (Mock Forest Plot Line) */}
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mt-8 w-full max-w-lg mx-auto">
-                  <div className="relative w-full h-10 mb-2">
-                    {/* Eixo central */}
-                    <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
-                    
-                    {/* Barra de IC */}
-                    <div 
-                      className="absolute top-1/2 h-3 bg-blue-500/30 border border-blue-500/50 -translate-y-1/2 rounded-full transition-all duration-700 ease-in-out z-10"
-                      style={{ 
-                        left: `${Math.max(0, Math.min(100, (metaAnalysis.lowerRr / 2) * 100))}%`, 
-                        right: `${100 - Math.max(0, Math.min(100, (metaAnalysis.upperRr / 2) * 100))}%` 
-                      }}
-                    ></div>
-                    
-                    {/* Ponto de estimativa */}
-                    <div 
-                      className="absolute top-1/2 w-5 h-5 bg-blue-700 border-2 border-white rounded-full -translate-y-1/2 -translate-x-1/2 transition-all duration-700 ease-in-out z-20 shadow-md"
-                      style={{ left: `${Math.max(0, Math.min(100, (metaAnalysis.rr / 2) * 100))}%` }}
-                    ></div>
-                  </div>
-                  
-                  <div className="relative flex justify-between text-xs font-bold uppercase tracking-wider mt-4">
-                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded">Favorece Terapia</span>
-                    <span className="absolute left-1/2 -translate-x-1/2 text-slate-400 bg-white px-2">RR = 1</span>
-                    <span className="text-red-600 bg-red-50 px-2 py-1 rounded">Favorece Controlo</span>
-                  </div>
+                html += `
+                <div class="transition-all duration-500 ease-in-out opacity-100 translate-y-0">
+                    <div class="grid lg:grid-cols-12 gap-8">
+                        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-md">
+                            <div class="bg-slate-800 p-4 text-white font-bold text-center tracking-wide uppercase text-sm flex items-center justify-center gap-2">
+                                <i data-lucide="activity" class="w-5 h-5"></i> Resultados Observados do Estudo
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-center">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                                            <th class="p-4 border-b border-r font-semibold text-left pl-6">Grupo de Estudo</th>
+                                            <th class="p-4 border-b border-r text-red-600 font-bold">Óbitos<br/><span class="text-xs font-normal">(Dado = 6)</span></th>
+                                            <th class="p-4 border-b border-r text-green-600 font-bold">Sobreviventes<br/><span class="text-xs font-normal">(Dado 1 a 5)</span></th>
+                                            <th class="p-4 border-b font-semibold">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b transition-colors hover:bg-slate-50">
+                                            <td class="p-4 border-r font-bold text-left pl-6 text-slate-700">Terapia DICE</td>
+                                            <td class="p-4 border-r text-2xl font-medium">${res.trtDeaths}</td>
+                                            <td class="p-4 border-r text-2xl font-medium">${res.trtSurvivals}</td>
+                                            <td class="p-4 bg-slate-50 text-lg font-medium text-slate-500">${state.p2SampleSize}</td>
+                                        </tr>
+                                        <tr class="transition-colors hover:bg-slate-50">
+                                            <td class="p-4 border-r font-bold text-left pl-6 text-slate-700">Controlo</td>
+                                            <td class="p-4 border-r text-2xl font-medium">${res.ctrlDeaths}</td>
+                                            <td class="p-4 border-r text-2xl font-medium">${res.ctrlSurvivals}</td>
+                                            <td class="p-4 bg-slate-50 text-lg font-medium text-slate-500">${state.p2SampleSize}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-5 space-y-4">
+                            <div class="p-6 rounded-2xl border-2 transition-colors duration-500 relative overflow-hidden ${
+                                stats.isSignificant ? 'bg-yellow-50/50 border-yellow-400' : 'bg-green-50/50 border-green-400'
+                            }">
+                                ${stats.isSignificant ? `<div class="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wide">Anomalia Estatística</div>` : ''}
+                                
+                                <h4 class="text-sm text-slate-500 font-bold uppercase mb-2 tracking-wider">Risco Relativo (RR)</h4>
+                                <div class="flex items-baseline gap-3">
+                                    <p class="text-5xl font-black text-slate-800">${stats.rr.toFixed(2)}</p>
+                                    <p class="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-md border border-slate-200">
+                                        IC 95%: [${stats.lowerRr.toFixed(2)}, ${stats.upperRr.toFixed(2)}]
+                                    </p>
+                                </div>
+                                
+                                ${stats.isSignificant ? `
+                                <div class="mt-4 bg-yellow-100 text-yellow-800 p-3 rounded-xl text-sm font-medium flex gap-2 items-start border border-yellow-200">
+                                    <i data-lucide="alert-triangle" class="shrink-0 mt-0.5 w-5 h-5"></i>
+                                    <p><strong>Falso Positivo!</strong> Por puro acaso, a terapia parece ter um efeito significativo. Tente rolar os dados novamente.</p>
+                                </div>
+                                ` : `
+                                <div class="mt-4 text-green-700 text-sm font-medium flex items-center gap-2">
+                                    <i data-lucide="check-circle-2" class="w-5 h-5"></i> Sem diferença estatística significativa.
+                                </div>
+                                `}
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                                    <h4 class="text-xs text-slate-400 font-bold uppercase mb-2 tracking-wider">NNT (Benefício)</h4>
+                                    ${stats.nnt ? `
+                                        <div>
+                                            <p class="text-3xl font-black text-green-600">${Math.ceil(stats.nnt)}</p>
+                                            ${stats.isSignificant ? `<p class="text-xs font-medium text-slate-400 mt-1">IC: [${Math.ceil(stats.nntLower || 0)}, ${Math.ceil(stats.nntUpper || 0)}]</p>` : ''}
+                                        </div>
+                                    ` : `<p class="text-xl text-slate-300 font-medium">Não aplicável</p>`}
+                                </div>
+                                
+                                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                                    <h4 class="text-xs text-slate-400 font-bold uppercase mb-2 tracking-wider">NNH (Dano)</h4>
+                                    ${stats.nnh ? `
+                                        <div>
+                                            <p class="text-3xl font-black text-red-600">${Math.ceil(stats.nnh)}</p>
+                                            ${stats.isSignificant ? `<p class="text-xs font-medium text-slate-400 mt-1">IC: [${Math.ceil(stats.nnhLower || 0)}, ${Math.ceil(stats.nnhUpper || 0)}]</p>` : ''}
+                                        </div>
+                                    ` : `<p class="text-xl text-slate-300 font-medium">Não aplicável</p>`}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            area.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // PÁGINA 3
+        window.toggleFilter = function(filterName) {
+            state.p3Filters[filterName] = !state.p3Filters[filterName];
+            renderPage3Dynamic();
+        }
+
+        function renderPage3(container) {
+            container.innerHTML = `
+                <div class="animate-fade-in">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
+                        <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="filter" class="text-blue-600 w-8 h-8"></i></div>
+                        A Armadilha das Análises de Subgrupos
+                    </h2>
+                    <p class="text-slate-600 text-lg mb-8 max-w-4xl">
+                        Os autores do artigo tentaram encontrar algum benefício dividindo os dados por <strong>cor do dado</strong> e <strong>experiência do investigador</strong>. 
+                        Experimente desmarcar a cor "Vermelho" (dados que "deram azar") e o "1º Ensaio" (pesquisadores "inexperientes") para ver o que acontece com o resultado final.
+                    </p>
+
+                    <div class="grid lg:grid-cols-12 gap-8" id="p3-dynamic-area"></div>
+
+                    ${renderStepNavigation(true, true)}
                 </div>
+            `;
+            renderPage3Dynamic();
+        }
 
-              </div>
-            </div>
-          ) : (
-             <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-10 h-full flex flex-col items-center justify-center text-slate-400 min-h-[400px]">
-               <Filter size={48} className="text-slate-300 mb-4" />
-               <p className="text-lg font-medium text-center">Selecione pelo menos um filtro de grupo para visualizar a análise combinada.</p>
-             </div>
-          )}
-        </div>
-      </div>
+        function buildToggleButton(label, filterKey, colorClass, subtitle) {
+            const checked = state.p3Filters[filterKey];
+            return `
+                <button onclick="toggleFilter('${filterKey}')" class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between group ${
+                    checked ? `bg-${colorClass}-50 border-${colorClass}-500 shadow-sm` : 'bg-white border-slate-200 hover:border-slate-300'
+                }">
+                    <div>
+                        <div class="font-bold ${checked ? `text-${colorClass}-800` : 'text-slate-600'}">${label}</div>
+                        ${subtitle ? `<div class="text-xs mt-1 ${checked ? `text-${colorClass}-600/80` : 'text-slate-400'}">${subtitle}</div>` : ''}
+                    </div>
+                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        checked ? `bg-${colorClass}-500 border-${colorClass}-500 text-white` : 'border-slate-300 bg-slate-50'
+                    }">
+                        ${checked ? '<i data-lucide="check-circle-2" class="w-4 h-4"></i>' : ''}
+                    </div>
+                </button>
+            `;
+        }
 
-      <StepNavigation onNext={onNext} onPrev={onPrev} currentStep={3} />
-    </div>
-  );
-}
+        function renderPage3Dynamic() {
+            const area = document.getElementById('p3-dynamic-area');
+            if (!area) return;
 
-function Page4({ onNext, onPrev }) {
-  const [hideNegative, setHideNegative] = useState(false);
+            const filteredTrials = trialsData.filter(t => {
+                if (!state.p3Filters.colorRed && t.color === 'Vermelho') return false;
+                if (!state.p3Filters.colorGreen && t.color === 'Verde') return false;
+                if (!state.p3Filters.colorWhite && t.color === 'Branco') return false;
+                if (!state.p3Filters.firstTrial && t.isFirst) return false;
+                if (!state.p3Filters.secondTrial && !t.isFirst) return false;
+                return true;
+            });
 
-  const displayedTrials = hideNegative ? trialsData.filter(t => t.isPublished) : trialsData;
+            let metaAnalysis = null;
+            if (filteredTrials.length > 0) {
+                let totalTrtDeaths = 0, totalTrtN = 0, totalCtrlDeaths = 0, totalCtrlN = 0;
+                filteredTrials.forEach(t => {
+                    totalTrtDeaths += t.trtDeaths; totalTrtN += t.n;
+                    totalCtrlDeaths += t.ctrlDeaths; totalCtrlN += t.n;
+                });
+                metaAnalysis = calculateStats(totalTrtDeaths, totalTrtN - totalTrtDeaths, totalCtrlDeaths, totalCtrlN - totalCtrlDeaths);
+            }
 
-  const metaAnalysis = useMemo(() => {
-    let totalTrtDeaths = 0, totalTrtN = 0;
-    let totalCtrlDeaths = 0, totalCtrlN = 0;
-    
-    displayedTrials.forEach(t => {
-      totalTrtDeaths += t.trtDeaths;
-      totalTrtN += t.n;
-      totalCtrlDeaths += t.ctrlDeaths;
-      totalCtrlN += t.n;
-    });
+            const isCherryPicking = !state.p3Filters.colorRed && !state.p3Filters.firstTrial;
 
-    return calculateStats(totalTrtDeaths, totalTrtN - totalTrtDeaths, totalCtrlDeaths, totalCtrlN - totalCtrlDeaths);
-  }, [displayedTrials]);
+            let metaHtml = '';
+            if (metaAnalysis) {
+                const rrStr = metaAnalysis.rr.toFixed(2);
+                const colorRrClass = (metaAnalysis.rr < 0.9 && metaAnalysis.isSignificant) ? 'text-green-600 drop-shadow-sm' : 
+                                    (metaAnalysis.rr > 1.1 && metaAnalysis.isSignificant) ? 'text-red-600 drop-shadow-sm' : 'text-slate-800';
+                
+                const leftPos = Math.max(0, Math.min(100, (metaAnalysis.lowerRr / 2) * 100));
+                const rightPos = 100 - Math.max(0, Math.min(100, (metaAnalysis.upperRr / 2) * 100));
+                const dotPos = Math.max(0, Math.min(100, (metaAnalysis.rr / 2) * 100));
 
-  return (
-    <div className="animate-fade-in">
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-8">
-        <div className="flex-1 max-w-3xl">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
-            <div className="p-3 bg-blue-100 rounded-xl"><EyeOff className="text-blue-600" size={32} /></div>
-            A Gaveta de Arquivos: Viés de Publicação
-          </h2>
-          <p className="text-slate-600 text-lg">
-            As revistas médicas têm uma tendência histórica para publicar apenas estudos com resultados <strong>positivos</strong> ou inovadores. 
-            Estudos em que a intervenção falha acabam arquivados "na gaveta". Simule este viés abaixo e observe o impacto no consenso geral.
-          </p>
-        </div>
-        
-        <div className="lg:mt-4 shrink-0">
-          <button 
-            onClick={() => setHideNegative(!hideNegative)}
-            className={`w-full lg:w-auto px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 border-2 shadow-sm ${
-              hideNegative 
-              ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
-              : 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700 shadow-md'
-            }`}
-          >
-            {hideNegative ? <EyeOff size={24} className="text-red-500" /> : <BookOpen size={24} />}
-            {hideNegative ? 'Mostrar Estudos Não Publicados' : 'Ocultar Estudos Negativos'}
-          </button>
-        </div>
-      </div>
+                metaHtml = `
+                    <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-md h-full flex flex-col items-center justify-center relative overflow-hidden">
+                        <i data-lucide="activity" class="absolute text-slate-50 opacity-50 z-0 rotate-12 w-[200px] h-[200px]"></i>
+                        <div class="text-center z-10 relative w-full">
+                            <div class="inline-block bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-bold tracking-wide mb-8 shadow-sm">
+                                Metanálise Combinada (${filteredTrials.length} estudos)
+                            </div>
+                            <div class="mb-10">
+                                <p class="text-sm uppercase font-bold text-slate-500 tracking-widest mb-2">Risco Relativo Global</p>
+                                <div class="flex justify-center items-center gap-4">
+                                    <p class="text-7xl font-black tracking-tighter transition-colors duration-500 ${colorRrClass}">
+                                        ${rrStr}
+                                    </p>
+                                </div>
+                                <div class="mt-4 inline-flex items-center justify-center bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
+                                    <span class="text-slate-500 font-medium mr-2">Intervalo de Confiança 95%:</span>
+                                    <span class="font-bold font-mono text-slate-700">[${metaAnalysis.lowerRr.toFixed(2)}, ${metaAnalysis.upperRr.toFixed(2)}]</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 mt-8 w-full max-w-lg mx-auto">
+                                <div class="relative w-full h-10 mb-2">
+                                    <div class="absolute top-0 bottom-0 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
+                                    <div class="absolute top-1/2 h-3 bg-blue-500/30 border border-blue-500/50 -translate-y-1/2 rounded-full transition-all duration-700 ease-in-out z-10"
+                                        style="left: ${leftPos}%; right: ${rightPos}%"></div>
+                                    <div class="absolute top-1/2 w-5 h-5 bg-blue-700 border-2 border-white rounded-full -translate-y-1/2 -translate-x-1/2 transition-all duration-700 ease-in-out z-20 shadow-md"
+                                        style="left: ${dotPos}%"></div>
+                                </div>
+                                <div class="relative flex justify-between text-xs font-bold uppercase tracking-wider mt-4">
+                                    <span class="text-green-600 bg-green-50 px-2 py-1 rounded">Favorece Terapia</span>
+                                    <span class="absolute left-1/2 -translate-x-1/2 text-slate-400 bg-white px-2">RR = 1</span>
+                                    <span class="text-red-600 bg-red-50 px-2 py-1 rounded">Favorece Controlo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                metaHtml = `
+                    <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-10 h-full flex flex-col items-center justify-center text-slate-400 min-h-[400px]">
+                        <i data-lucide="filter" class="text-slate-300 w-12 h-12 mb-4"></i>
+                        <p class="text-lg font-medium text-center">Selecione pelo menos um filtro de grupo para visualizar a análise combinada.</p>
+                    </div>
+                `;
+            }
 
-      <div className="grid lg:grid-cols-12 gap-8">
-        {/* Gráfico Visual */}
-        <div className="lg:col-span-7 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col min-h-[450px]">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-700 tracking-wide uppercase text-sm">Distribuição dos Ensaios (Funnel Plot Simplificado)</h3>
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">N = {displayedTrials.length} estudos</span>
-          </div>
-          
-          <div className="flex-grow relative bg-slate-50/50 rounded-xl border border-slate-100">
-            {/* Eixos do Gráfico */}
-            <div className="absolute top-4 bottom-10 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
-            <div className="absolute top-4 bottom-10 left-10 w-px bg-slate-200 z-0"></div>
-            <div className="absolute bottom-10 left-8 right-8 h-px bg-slate-300 z-0"></div>
-            
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-400 bg-white px-2">RR = 1 (Nenhum Efeito)</div>
-            <div className="absolute top-1/2 -left-3 -translate-y-1/2 -rotate-90 text-xs font-bold text-slate-400 tracking-widest uppercase">Tamanho da Amostra</div>
-            
-            <div className="absolute top-2 left-1/2 right-4 h-full bg-green-50/30 rounded-tr-xl z-0 pointer-events-none"></div>
-            <div className="absolute top-2 left-4 right-1/2 h-full bg-red-50/30 rounded-tl-xl z-0 pointer-events-none"></div>
+            area.innerHTML = `
+                <div class="lg:col-span-5 space-y-8">
+                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Subgrupo: Cor do Dado</h3>
+                        <div class="space-y-3">
+                            ${buildToggleButton('Dados Vermelhos', 'colorRed', 'red', 'Resultados piores na amostra')}
+                            ${buildToggleButton('Dados Verdes', 'colorGreen', 'green', '')}
+                            ${buildToggleButton('Dados Brancos', 'colorWhite', 'slate', '')}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Subgrupo: Experiência</h3>
+                        <div class="space-y-3">
+                            ${buildToggleButton('1º Ensaio', 'firstTrial', 'blue', 'Curva de aprendizagem inicial')}
+                            ${buildToggleButton('2º Ensaio', 'secondTrial', 'blue', 'Investigadores experientes')}
+                        </div>
+                    </div>
+                    
+                    <div class="transition-all duration-500 overflow-hidden ${isCherryPicking ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}">
+                        <div class="bg-red-100 text-red-800 p-5 rounded-2xl border-2 border-red-300 flex gap-3 items-start shadow-sm">
+                            <i data-lucide="alert-triangle" class="shrink-0 text-red-600 w-6 h-6"></i>
+                            <div>
+                                <strong class="block mb-1 text-red-900">Atenção (Cherry-picking)</strong>
+                                <p class="text-sm font-medium text-red-700/90">Está a torturar os dados até que eles confessem! Selecionar apenas os subgrupos favoráveis cria uma falsa evidência científica.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-7">
+                    ${metaHtml}
+                </div>
+            `;
+            lucide.createIcons();
+        }
 
-            {/* Pontos de Dados */}
-            <div className="relative w-full h-full z-10 px-10 pb-10 pt-4">
-              {trialsData.map(trial => {
+        // PÁGINA 4
+        window.toggleHideNegative = function() {
+            state.p4HideNegative = !state.p4HideNegative;
+            renderPage4Dynamic();
+        }
+
+        function renderPage4(container) {
+            container.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-8">
+                        <div class="flex-1 max-w-3xl">
+                            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-4 flex items-center gap-4">
+                                <div class="p-3 bg-blue-100 rounded-xl"><i data-lucide="eye-off" class="text-blue-600 w-8 h-8"></i></div>
+                                A Gaveta de Arquivos: Viés de Publicação
+                            </h2>
+                            <p class="text-slate-600 text-lg">
+                                As revistas médicas têm uma tendência histórica para publicar apenas estudos com resultados <strong>positivos</strong> ou inovadores. 
+                                Estudos em que a intervenção falha acabam arquivados "na gaveta". Simule este viés abaixo e observe o impacto no consenso geral.
+                            </p>
+                        </div>
+                        <div class="lg:mt-4 shrink-0" id="p4-btn-container"></div>
+                    </div>
+                    <div class="grid lg:grid-cols-12 gap-8" id="p4-dynamic-area"></div>
+                    ${renderStepNavigation(true, true)}
+                </div>
+            `;
+            renderPage4Dynamic();
+        }
+
+        function renderPage4Dynamic() {
+            const btnArea = document.getElementById('p4-btn-container');
+            const dataArea = document.getElementById('p4-dynamic-area');
+            if (!btnArea || !dataArea) return;
+
+            btnArea.innerHTML = `
+                <button onclick="toggleHideNegative()" class="w-full lg:w-auto px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 border-2 shadow-sm ${
+                    state.p4HideNegative ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700 shadow-md'
+                }">
+                    <i data-lucide="${state.p4HideNegative ? 'eye-off' : 'book-open'}" class="${state.p4HideNegative ? 'text-red-500' : ''} w-6 h-6"></i>
+                    ${state.p4HideNegative ? 'Mostrar Estudos Não Publicados' : 'Ocultar Estudos Negativos'}
+                </button>
+            `;
+
+            const displayedTrials = state.p4HideNegative ? trialsData.filter(t => t.isPublished) : trialsData;
+
+            let totalTrtDeaths = 0, totalTrtN = 0, totalCtrlDeaths = 0, totalCtrlN = 0;
+            displayedTrials.forEach(t => {
+                totalTrtDeaths += t.trtDeaths; totalTrtN += t.n;
+                totalCtrlDeaths += t.ctrlDeaths; totalCtrlN += t.n;
+            });
+            const metaAnalysis = calculateStats(totalTrtDeaths, totalTrtN - totalTrtDeaths, totalCtrlDeaths, totalCtrlN - totalCtrlDeaths);
+
+            let dotsHtml = '';
+            trialsData.forEach(trial => {
                 const rr = trial.stats.rr;
-                const isVisible = !hideNegative || trial.isPublished;
-                
-                // Escala simplificada para exibição
+                const isVisible = !state.p4HideNegative || trial.isPublished;
                 const xPos = Math.max(5, Math.min(95, ((rr - 0.2) / 1.6) * 100)); 
                 const yPos = Math.max(5, Math.min(95, ((trial.n - 10) / 40) * 100));
                 
-                return (
-                  <div
-                    key={trial.id}
-                    className={`absolute rounded-full transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-2 border-white shadow-sm flex items-center justify-center
-                      ${isVisible ? 'opacity-90 scale-100 w-5 h-5' : 'opacity-0 scale-0 w-0 h-0 pointer-events-none'}
-                      ${trial.isPublished ? 'bg-blue-500 hover:bg-blue-600 z-20' : 'bg-slate-400 hover:bg-slate-500 z-10'}
-                    `}
-                    style={{ left: `${xPos}%`, bottom: `${yPos}%` }}
-                    title={`Estudo ${trial.id} | RR: ${rr.toFixed(2)} | Tamanho: ${trial.n * 2} | Status: ${trial.isPublished ? 'Publicado' : 'Não Publicado'}`}
-                  >
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          <div className="mt-4 flex justify-center gap-6 text-sm font-medium text-slate-500">
-            <span className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded-full border border-white"></div> Estudos Publicados</span>
-            <span className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-400 rounded-full border border-white"></div> Estudos na Gaveta</span>
-          </div>
-        </div>
+                dotsHtml += `
+                    <div class="absolute rounded-full transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-2 border-white shadow-sm flex items-center justify-center
+                        ${isVisible ? 'opacity-90 scale-100 w-5 h-5' : 'opacity-0 scale-0 w-0 h-0 pointer-events-none'}
+                        ${trial.isPublished ? 'bg-blue-500 hover:bg-blue-600 z-20' : 'bg-slate-400 hover:bg-slate-500 z-10'}"
+                        style="left: ${xPos}%; bottom: ${yPos}%"
+                        title="Estudo ${trial.id} | RR: ${rr.toFixed(2)} | Tamanho: ${trial.n * 2} | Status: ${trial.isPublished ? 'Publicado' : 'Não Publicado'}">
+                    </div>
+                `;
+            });
 
-        {/* Resumo da Metanálise */}
-        <div className="lg:col-span-5 relative overflow-hidden rounded-3xl group">
-           {/* Fundo dinâmico com base no viés */}
-           <div className={`absolute inset-0 transition-colors duration-1000 ${
-             hideNegative ? 'bg-gradient-to-br from-red-600 to-orange-600' : 'bg-gradient-to-br from-blue-800 to-indigo-900'
-           }`}></div>
-           
-           <Activity size={180} className="absolute -right-16 -bottom-16 text-white opacity-10 transform group-hover:scale-110 transition-transform duration-1000" />
-           
-           <div className="relative z-10 p-8 h-full flex flex-col justify-center text-center text-white">
-             <div className="bg-white/10 inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-6 mx-auto border border-white/20 backdrop-blur-sm">
-               Resultado da Literatura
-             </div>
-             
-             <p className="text-8xl font-black mb-2 tracking-tighter drop-shadow-lg">{metaAnalysis.rr.toFixed(2)}</p>
-             <p className="text-white/80 font-mono text-lg mb-10 bg-black/20 py-2 px-4 rounded-xl inline-block mx-auto border border-white/10">
-               IC 95%: [{metaAnalysis.lowerRr.toFixed(2)}, {metaAnalysis.upperRr.toFixed(2)}]
-             </p>
-             
-             <div className="mt-auto">
-               {hideNegative ? (
-                 <div className="bg-white text-red-700 p-5 rounded-2xl shadow-xl transform animate-bounce-slight border-b-4 border-red-500">
-                   <p className="font-bold flex items-center justify-center gap-2 text-lg mb-1">
-                     <AlertTriangle size={22} className="text-red-500" /> Ilusão de Eficácia!
-                   </p>
-                   <p className="text-sm font-medium text-slate-600 leading-snug">Ao ignorar as falhas, a terapia parece ter um impacto benéfico na mortalidade.</p>
-                 </div>
-               ) : (
-                 <div className="bg-white/20 backdrop-blur-md text-white p-5 rounded-2xl border border-white/30">
-                   <p className="font-bold flex items-center justify-center gap-2 text-lg mb-1 text-green-300">
-                     <CheckCircle2 size={22} /> Conclusão Real
-                   </p>
-                   <p className="text-sm font-medium text-white/90 leading-snug">Ao incluir toda a evidência, fica claro que a terapia não altera o risco absoluto.</p>
-                 </div>
-               )}
-             </div>
-           </div>
-        </div>
-      </div>
+            dataArea.innerHTML = `
+                <div class="lg:col-span-7 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col min-h-[450px]">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-slate-700 tracking-wide uppercase text-sm">Distribuição dos Ensaios (Funnel Plot Simplificado)</h3>
+                        <span class="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">N = ${displayedTrials.length} estudos</span>
+                    </div>
+                    
+                    <div class="flex-grow relative bg-slate-50/50 rounded-xl border border-slate-100">
+                        <div class="absolute top-4 bottom-10 left-1/2 w-0.5 bg-slate-300 -translate-x-1/2 z-0 border-l border-dashed border-slate-400"></div>
+                        <div class="absolute top-4 bottom-10 left-10 w-px bg-slate-200 z-0"></div>
+                        <div class="absolute bottom-10 left-8 right-8 h-px bg-slate-300 z-0"></div>
+                        
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-400 bg-white px-2">RR = 1 (Nenhum Efeito)</div>
+                        <div class="absolute top-1/2 -left-3 -translate-y-1/2 -rotate-90 text-xs font-bold text-slate-400 tracking-widest uppercase">Tamanho da Amostra</div>
+                        
+                        <div class="absolute top-2 left-1/2 right-4 h-full bg-green-50/30 rounded-tr-xl z-0 pointer-events-none"></div>
+                        <div class="absolute top-2 left-4 right-1/2 h-full bg-red-50/30 rounded-tl-xl z-0 pointer-events-none"></div>
 
-      <StepNavigation onNext={onNext} onPrev={onPrev} currentStep={4} />
-    </div>
-  );
-}
+                        <div class="relative w-full h-full z-10 px-10 pb-10 pt-4">
+                            ${dotsHtml}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-center gap-6 text-sm font-medium text-slate-500">
+                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full border border-white"></div> Estudos Publicados</span>
+                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-400 rounded-full border border-white"></div> Estudos na Gaveta</span>
+                    </div>
+                </div>
 
-function Page5({ onPrev }) {
-  const lessons = [
-    {
-      icon: <Users className="text-blue-500" size={32} />,
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
-      title: "Cuidado com o Acaso em Amostras Pequenas",
-      text: "Estudos com poucos pacientes são extremamente vulneráveis a flutuações estatísticas. Um ensaio clínico pequeno com resultado muito positivo pode ser apenas 'sorte' na rolagem dos dados."
-    },
-    {
-      icon: <Filter className="text-yellow-500" size={32} />,
-      bgColor: "bg-yellow-50",
-      borderColor: "border-yellow-200",
-      title: "Desconfie de Análises de Subgrupos Não Planejadas",
-      text: "Se torturar os dados por tempo suficiente, eles confessarão. Dividir os pacientes em muitos subgrupos (por cor, idade, experiência) aumenta drasticamente a chance de encontrar um falso positivo."
-    },
-    {
-      icon: <EyeOff className="text-red-500" size={32} />,
-      bgColor: "bg-red-50",
-      borderColor: "border-red-200",
-      title: "O Viés de Publicação Distorce a Realidade",
-      text: "Se lermos apenas os estudos que 'deram certo' e ignorarmos os que falharam (que ficam na gaveta), passaremos a acreditar cegamente que tratamentos ineficazes são soluções milagrosas."
-    },
-    {
-      icon: <Activity className="text-green-500" size={32} />,
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
-      title: "A Necessidade de Mega Trials e Revisões Sistemáticas",
-      text: "Para contornar o acaso, precisamos de ensaios clínicos com milhares de pacientes (mega trials) e revisões sistemáticas que incluam rigorosamente TODOS os dados produzidos, publicados ou não."
-    }
-  ];
+                <div class="lg:col-span-5 relative overflow-hidden rounded-3xl group">
+                    <div class="absolute inset-0 transition-colors duration-1000 ${state.p4HideNegative ? 'bg-gradient-to-br from-red-600 to-orange-600' : 'bg-gradient-to-br from-blue-800 to-indigo-900'}"></div>
+                    <i data-lucide="activity" class="absolute -right-16 -bottom-16 text-white opacity-10 transform group-hover:scale-110 transition-transform duration-1000 w-[180px] h-[180px]"></i>
+                    
+                    <div class="relative z-10 p-8 h-full flex flex-col justify-center text-center text-white">
+                        <div class="bg-white/10 inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-6 mx-auto border border-white/20 backdrop-blur-sm">
+                            Resultado da Literatura
+                        </div>
+                        
+                        <p class="text-8xl font-black mb-2 tracking-tighter drop-shadow-lg">${metaAnalysis.rr.toFixed(2)}</p>
+                        <p class="text-white/80 font-mono text-lg mb-10 bg-black/20 py-2 px-4 rounded-xl inline-block mx-auto border border-white/10">
+                            IC 95%: [${metaAnalysis.lowerRr.toFixed(2)}, ${metaAnalysis.upperRr.toFixed(2)}]
+                        </p>
+                        
+                        <div class="mt-auto">
+                            ${state.p4HideNegative ? `
+                                <div class="bg-white text-red-700 p-5 rounded-2xl shadow-xl transform animate-bounce-slight border-b-4 border-red-500">
+                                    <p class="font-bold flex items-center justify-center gap-2 text-lg mb-1">
+                                        <i data-lucide="alert-triangle" class="text-red-500 w-5 h-5"></i> Ilusão de Eficácia!
+                                    </p>
+                                    <p class="text-sm font-medium text-slate-600 leading-snug">Ao ignorar as falhas, a terapia parece ter um impacto benéfico na mortalidade.</p>
+                                </div>
+                            ` : `
+                                <div class="bg-white/20 backdrop-blur-md text-white p-5 rounded-2xl border border-white/30">
+                                    <p class="font-bold flex items-center justify-center gap-2 text-lg mb-1 text-green-300">
+                                        <i data-lucide="check-circle-2" class="w-5 h-5"></i> Conclusão Real
+                                    </p>
+                                    <p class="text-sm font-medium text-white/90 leading-snug">Ao incluir toda a evidência, fica claro que a terapia não altera o risco absoluto.</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
 
-  return (
-    <div className="animate-fade-in">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center p-4 bg-green-100 rounded-full mb-4">
-          <CheckCircle2 className="text-green-600" size={48} />
-        </div>
-        <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-800 tracking-tight">
-          Lições para a Prática Médica
-        </h2>
-        <p className="text-slate-500 mt-4 text-lg max-w-2xl mx-auto">
-          A brincadeira com os dados ilustra perigos reais e muito comuns na interpretação da literatura médica contemporânea.
-        </p>
-      </div>
-      
-      <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto">
-        {lessons.map((lesson, idx) => (
-          <div key={idx} className={`p-8 rounded-3xl border-2 ${lesson.borderColor} bg-white hover:${lesson.bgColor} transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden`}>
-            {/* Decoração de fundo */}
-            <div className={`absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-10 transition-transform group-hover:scale-150 ${lesson.bgColor.replace('bg-', 'bg-').replace('50', '500')}`}></div>
-            
-            <div className="flex flex-col gap-4 relative z-10">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-white bg-white`}>
-                {lesson.icon}
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-800 mb-3 leading-snug">{lesson.title}</h3>
-                <p className="text-slate-600 leading-relaxed font-medium">
-                  {lesson.text}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+        // PÁGINA 5
+        function renderPage5(container) {
+            const lessons = [
+                {
+                    icon: 'users', color: 'blue',
+                    title: 'Cuidado com o Acaso em Amostras Pequenas',
+                    text: 'Estudos com poucos pacientes são extremamente vulneráveis a flutuações estatísticas. Um ensaio clínico pequeno com resultado muito positivo pode ser apenas "sorte" na rolagem dos dados.'
+                },
+                {
+                    icon: 'filter', color: 'yellow',
+                    title: 'Desconfie de Análises de Subgrupos Não Planejadas',
+                    text: 'Se torturar os dados por tempo suficiente, eles confessarão. Dividir os pacientes em muitos subgrupos (por cor, idade, experiência) aumenta drasticamente a chance de encontrar um falso positivo.'
+                },
+                {
+                    icon: 'eye-off', color: 'red',
+                    title: 'O Viés de Publicação Distorce a Realidade',
+                    text: 'Se lermos apenas os estudos que "deram certo" e ignorarmos os que falharam (que ficam na gaveta), passaremos a acreditar cegamente que tratamentos ineficazes são soluções milagrosas.'
+                },
+                {
+                    icon: 'activity', color: 'green',
+                    title: 'A Necessidade de Mega Trials e Revisões Sistemáticas',
+                    text: 'Para contornar o acaso, precisamos de ensaios clínicos com milhares de pacientes (mega trials) e revisões sistemáticas que incluam rigorosamente TODOS os dados produzidos, publicados ou não.'
+                }
+            ];
 
-      <div className="mt-16 relative p-[3px] rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 max-w-3xl mx-auto shadow-xl">
-        <div className="bg-white p-8 sm:p-10 rounded-[21px] text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-slate-800 italic leading-snug">
-            "A próxima vez que ler sobre um tratamento milagroso baseado numa análise de subgrupo de um estudo pequeno, lembre-se da Terapia DICE."
-          </p>
-        </div>
-      </div>
+            let lessonsHtml = lessons.map(l => `
+                <div class="p-8 rounded-3xl border-2 border-${l.color}-200 bg-white hover:bg-${l.color}-50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-10 transition-transform group-hover:scale-150 bg-${l.color}-500"></div>
+                    <div class="flex flex-col gap-4 relative z-10">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-white bg-white">
+                            <i data-lucide="${l.icon}" class="text-${l.color}-500 w-8 h-8"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-3 leading-snug">${l.title}</h3>
+                            <p class="text-slate-600 leading-relaxed font-medium">${l.text}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
 
-      <StepNavigation onPrev={onPrev} currentStep={5} />
-    </div>
-  );
-}
+            container.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="text-center mb-12">
+                        <div class="inline-flex items-center justify-center p-4 bg-green-100 rounded-full mb-4">
+                            <i data-lucide="check-circle-2" class="text-green-600 w-12 h-12"></i>
+                        </div>
+                        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-800 tracking-tight">
+                            Lições para a Prática Médica
+                        </h2>
+                        <p class="text-slate-500 mt-4 text-lg max-w-2xl mx-auto">
+                            A brincadeira com os dados ilustra perigos reais e muito comuns na interpretação da literatura médica contemporânea.
+                        </p>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto">
+                        ${lessonsHtml}
+                    </div>
+
+                    <div class="mt-16 relative p-[3px] rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 max-w-3xl mx-auto shadow-xl">
+                        <div class="bg-white p-8 sm:p-10 rounded-[21px] text-center">
+                            <p class="text-2xl sm:text-3xl font-bold text-slate-800 italic leading-snug">
+                                "A próxima vez que ler sobre um tratamento milagroso baseado numa análise de subgrupo de um estudo pequeno, lembre-se da Terapia DICE."
+                            </p>
+                        </div>
+                    </div>
+
+                    ${renderStepNavigation(true, false)}
+                </div>
+            `;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
